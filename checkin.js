@@ -1,7 +1,7 @@
 /**
  * AttendTrack - Trainee Check-In Portal
  * UNRWA HR Staff Development & Training Division
- * Real-time Firebase Sync + Strict English Certificate Validation
+ * Real-time Firebase Sync + Full Bilingual Support + Single-line Layout
  */
 
 (function () {
@@ -26,10 +26,10 @@
         firebase.initializeApp(firebaseConfig);
       }
       db = firebase.database();
-      console.log('Firebase Realtime Database initialized successfully.');
+      console.log('Firebase Realtime Database initialized in Trainee Portal.');
       updateCloudStatus(true);
     } else {
-      console.warn('Firebase SDK not found; using fallback local storage mode.');
+      console.warn('Firebase SDK not found; using local fallback.');
       updateCloudStatus(false);
     }
   } catch (err) {
@@ -43,11 +43,129 @@
     if (!badge || !text) return;
     if (isOnline) {
       badge.className = 'status-pill status-connected';
-      text.textContent = 'Cloud Connected / متصل';
+      text.textContent = (currentLang === 'ar') ? 'متصل' : 'Online';
     } else {
       badge.className = 'status-pill status-offline';
-      text.textContent = 'Local Mode / وضع محلي';
+      text.textContent = (currentLang === 'ar') ? 'محلي' : 'Local';
     }
+  }
+
+  // 2. Bilingual Dictionary
+  let currentLang = 'ar'; // Default Arabic for Syria Field
+
+  const translations = {
+    ar: {
+      portalSubTitle: 'بوابة تسجيل المتدربين',
+      cloudOnline: 'متصل',
+      traineeBannerBadge: 'جلسة تدريبية رسمية معتمدة',
+      traineeFormTitle: 'تسجيل الحضور الإلكتروني',
+      traineeFormHint: 'يرجى تعبئة البيانات بدقة. سيظهر اسمك على الشهادة تماماً كما هو مكتوب أدناه.',
+      lblEmpNumber: 'الرقم الوظيفي',
+      helpEmpNumber: 'رقمك الوظيفي المعتمد في الأونروا',
+      phEmpNumber: 'مثال: 10458291',
+      lblTraineeName: 'اسم المتدرب (باللغة الإنكليزية)',
+      warnEnglishOnly: 'يرجى كتابة الاسم بالأحرف الإنجليزية فقط لطباعة الشهادة الرسمية.',
+      certPreviewBadge: 'معاينة الاسم على الشهادة',
+      certVerifyPrompt: 'تأكد من صحة كتابة الاسم والحروف الكبيرة قبل تأكيد الحضور.',
+      lblGender: 'الجنس',
+      optMale: 'ذكر',
+      optFemale: 'أنثى',
+      lblDepartment: 'القسم / الدائرة',
+      optSelectDept: '-- اختر القسم أو البرنامج --',
+      optCustomDept: '+ قسم أو دائرة أخرى...',
+      phCustomDept: 'اكتب اسم القسم هنا...',
+      lblJobTitle: 'المسمى الوظيفي',
+      phJobTitle: 'مثال: مسؤول إداري، معلم',
+      lblGrade: 'الدرجة الوظيفية',
+      optSelectGrade: '-- اختر الدرجة --',
+      optContract: 'عقد / مياومة (Contract)',
+      optVolunteer: 'متطوع / متدرب (Volunteer)',
+      btnConfirmAttendance: 'تأكيد وتسجيل الحضور',
+      btnSubmitting: 'جاري تسجيل الحضور...',
+      successTitle: 'تم تسجيل حضورك بنجاح!',
+      successDesc: 'تم التحقق من بياناتك وتوثيق حضورك في السجلات الرسمية لقسم تطوير الموظفين والتدريب.',
+      btnRegisterAnother: 'تسجيل زميل آخر',
+      rcptName: 'الاسم:',
+      rcptEmpNo: 'الرقم الوظيفي:',
+      rcptGender: 'الجنس:',
+      rcptDept: 'القسم:',
+      rcptTitle: 'المسمى الوظيفي:',
+      rcptGrade: 'الدرجة:',
+      rcptCourse: 'الدورة:',
+      rcptLocation: 'المكان:',
+      rcptTime: 'الوقت:'
+    },
+    en: {
+      portalSubTitle: 'Trainee Attendance Portal',
+      cloudOnline: 'Online',
+      traineeBannerBadge: 'Official UNRWA Training Session',
+      traineeFormTitle: 'Electronic Attendance Registration',
+      traineeFormHint: 'Fill out your details accurately. Your name will appear on the certificate exactly as typed below.',
+      lblEmpNumber: 'Employee Number',
+      helpEmpNumber: 'Your official UNRWA personnel number',
+      phEmpNumber: 'e.g. 10458291',
+      lblTraineeName: 'Trainee Name (English)',
+      warnEnglishOnly: 'Please write your name in English letters only for official certificate issuance.',
+      certPreviewBadge: 'Certificate Name Preview',
+      certVerifyPrompt: 'Verify spelling and capitalization carefully before submitting.',
+      lblGender: 'Gender',
+      optMale: 'Male',
+      optFemale: 'Female',
+      lblDepartment: 'Department / Programme',
+      optSelectDept: '-- Select Department --',
+      optCustomDept: '+ Other / Custom Department...',
+      phCustomDept: 'Type custom department here...',
+      lblJobTitle: 'Job Title',
+      phJobTitle: 'e.g. Administrative Officer, Teacher',
+      lblGrade: 'Grade',
+      optSelectGrade: '-- Select Grade --',
+      optContract: 'Daily Paid / Contract',
+      optVolunteer: 'Volunteer / Intern',
+      btnConfirmAttendance: 'Confirm & Submit Attendance',
+      btnSubmitting: 'Submitting Attendance...',
+      successTitle: 'Attendance Confirmed Successfully!',
+      successDesc: 'Your information has been verified and registered live with UNRWA Staff Development & Training Division.',
+      btnRegisterAnother: 'Register Another Colleague',
+      rcptName: 'Name:',
+      rcptEmpNo: 'Employee #:',
+      rcptGender: 'Gender:',
+      rcptDept: 'Department:',
+      rcptTitle: 'Job Title:',
+      rcptGrade: 'Grade:',
+      rcptCourse: 'Course:',
+      rcptLocation: 'Location:',
+      rcptTime: 'Timestamp:'
+    }
+  };
+
+  function applyLanguage(lang) {
+    currentLang = lang;
+    document.documentElement.lang = lang;
+    document.documentElement.dir = (lang === 'ar') ? 'rtl' : 'ltr';
+
+    const langLabel = document.getElementById('currentLangLabel');
+    if (langLabel) {
+      langLabel.textContent = (lang === 'ar') ? 'English' : 'العربية';
+    }
+
+    const dict = translations[lang];
+    if (!dict) return;
+
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (dict[key]) el.textContent = dict[key];
+    });
+
+    const empInput = document.getElementById('empNumberInput');
+    if (empInput && dict.phEmpNumber) empInput.placeholder = dict.phEmpNumber;
+
+    const jobInput = document.getElementById('jobTitleInput');
+    if (jobInput && dict.phJobTitle) jobInput.placeholder = dict.phJobTitle;
+
+    const deptCustom = document.getElementById('deptCustomInput');
+    if (deptCustom && dict.phCustomDept) deptCustom.placeholder = dict.phCustomDept;
+
+    updateCloudStatus(db !== null);
   }
 
   // Session Data & State
@@ -60,7 +178,7 @@
     sessionId: 'session_default'
   };
 
-  // 2. Parse URL Parameters
+  // 3. Parse URL Parameters
   function initSessionFromUrl() {
     const params = new URLSearchParams(window.location.search);
     const c = params.get('c');
@@ -78,13 +196,11 @@
     if (sid) {
       sessionData.sessionId = decodeURIComponent(sid);
     } else if (c) {
-      // Create deterministic session id from course and date
       sessionData.sessionId = 'session_' + encodeURIComponent((sessionData.course + '_' + sessionData.date).replace(/[^a-zA-Z0-9]/g, '_'));
     }
 
     renderSessionHeaders();
 
-    // If connected to Firebase, also sync session details if active on cloud
     if (db && (!c || !sid)) {
       db.ref('active_session').once('value').then((snap) => {
         const val = snap.val();
@@ -112,7 +228,7 @@
     if (elCertCourse) elCertCourse.textContent = sessionData.course;
   }
 
-  // 3. Strict English Name Validation & Live Preview
+  // 4. Strict English Name Validation & Live Preview
   const arabicRegex = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/;
   const englishRegex = /^[A-Za-z\s.'-]+$/;
 
@@ -132,7 +248,6 @@
         traineeNameInput.classList.remove('input-error');
       }
 
-      // Update Live Certificate
       const trimmed = rawVal.trim();
       if (trimmed.length > 0) {
         if (certLiveName) certLiveName.textContent = trimmed.toUpperCase();
@@ -142,7 +257,7 @@
     });
   }
 
-  // 4. Custom Department Handling
+  // 5. Custom Department Handling
   const deptSelect = document.getElementById('deptSelect');
   const deptCustomInput = document.getElementById('deptCustomInput');
   if (deptSelect && deptCustomInput) {
@@ -158,7 +273,15 @@
     });
   }
 
-  // 5. Submit Form
+  // 6. Language Switcher Button
+  const btnLang = document.getElementById('langToggleBtn');
+  if (btnLang) {
+    btnLang.addEventListener('click', () => {
+      applyLanguage(currentLang === 'ar' ? 'en' : 'ar');
+    });
+  }
+
+  // 7. Submit Form
   const btnSubmit = document.getElementById('btnSubmitCheckin');
   if (btnSubmit) {
     btnSubmit.addEventListener('click', handleCheckinSubmit);
@@ -183,55 +306,57 @@
     const jobTitle = jobInput ? jobInput.value.trim() : '';
     const grade = gradeSel ? gradeSel.value : '';
 
+    const dict = translations[currentLang];
+
     // Validations
     if (!empNumber) {
-      showToast('Please enter your UNRWA Employee Number / يرجى إدخال رقم الموظف', 'error');
+      showToast((currentLang === 'ar') ? 'يرجى إدخال الرقم الوظيفي' : 'Please enter Employee Number', 'error');
       if (empNumInput) empNumInput.focus();
       return;
     }
     if (!/^\d{4,12}$/.test(empNumber)) {
-      showToast('Employee number must contain numbers only (5-10 digits) / رقم الموظف يجب أن يتكون من أرقام فقط', 'error');
+      showToast((currentLang === 'ar') ? 'الرقم الوظيفي يجب أن يتكون من أرقام فقط' : 'Employee number must be digits only', 'error');
       if (empNumInput) empNumInput.focus();
       return;
     }
     if (!traineeName) {
-      showToast('Please enter your name in English / يرجى إدخال الاسم بالإنجليزية', 'error');
+      showToast((currentLang === 'ar') ? 'يرجى كتابة الاسم باللغة الإنكليزية' : 'Please enter your name in English', 'error');
       if (nameInput) nameInput.focus();
       return;
     }
     if (arabicRegex.test(traineeName)) {
-      showToast('Arabic letters detected! Name must be English only for certificate printing / يجب كتابة الاسم باللغة الإنكليزية حصراً لطباعة الشهادة', 'error');
+      showToast((currentLang === 'ar') ? 'تم اكتشاف حروف عربية! يرجى كتابة الاسم بالإنكليزية لطباعة الشهادة' : 'Arabic characters detected! Please write name in English.', 'error');
       if (nameInput) nameInput.focus();
       return;
     }
     if (!englishRegex.test(traineeName)) {
-      showToast('Name can only contain English letters, spaces, hyphens and dots / الاسم يجب أن يحتوي على أحرف إنكليزية فقط', 'error');
+      showToast((currentLang === 'ar') ? 'الاسم يجب أن يحتوي على حروف إنكليزية فقط' : 'Name must contain English letters only', 'error');
       if (nameInput) nameInput.focus();
       return;
     }
     if (!gender) {
-      showToast('Please select your gender (Male / Female) / يرجى تحديد الجنس', 'error');
+      showToast((currentLang === 'ar') ? 'يرجى تحديد الجنس (ذكر / أنثى)' : 'Please select your gender', 'error');
       return;
     }
     if (!department || department === '__custom__') {
-      showToast('Please select or specify your department / يرجى تحديد القسم أو الدائرة', 'error');
+      showToast((currentLang === 'ar') ? 'يرجى تحديد القسم أو البرنامج' : 'Please select Department', 'error');
       if (deptSel) deptSel.focus();
       return;
     }
     if (!jobTitle) {
-      showToast('Please enter your Job Title / يرجى كتابة المسمى الوظيفي', 'error');
+      showToast((currentLang === 'ar') ? 'يرجى كتابة المسمى الوظيفي' : 'Please enter Job Title', 'error');
       if (jobInput) jobInput.focus();
       return;
     }
     if (!grade) {
-      showToast('Please select your grade / يرجى اختيار الدرجة الوظيفية', 'error');
+      showToast((currentLang === 'ar') ? 'يرجى اختيار الدرجة الوظيفية' : 'Please select Grade', 'error');
       if (gradeSel) gradeSel.focus();
       return;
     }
 
-    // Disable button to prevent duplicate submissions
+    // Disable button to prevent double tap
     btnSubmit.disabled = true;
-    btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting / جاري التأكيد...';
+    btnSubmit.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${dict.btnSubmitting}`;
 
     const now = new Date();
     const attendeeData = {
@@ -259,19 +384,19 @@
         const sessionRef = db.ref('sessions/' + sessionData.sessionId + '/attendees');
         await sessionRef.push(attendeeData);
         cloudSynced = true;
-        console.log('Attendee saved to Firebase Realtime Database successfully.');
+        console.log('Saved to Firebase Realtime Database.');
       } catch (err) {
-        console.error('Failed to write to Firebase:', err);
+        console.error('Firebase save error:', err);
       }
     }
 
-    // 2. Local Storage Backup
+    // 2. Local Backup
     try {
       const localAttendees = JSON.parse(localStorage.getItem('attendtrack_local_receipts_v1') || '[]');
       localAttendees.push(attendeeData);
       localStorage.setItem('attendtrack_local_receipts_v1', JSON.stringify(localAttendees));
     } catch (e) {
-      console.warn('LocalStorage error:', e);
+      console.warn(e);
     }
 
     // Trigger Confetti
@@ -283,7 +408,6 @@
       });
     }
 
-    // Show Success Card
     showSuccessReceipt(attendeeData, cloudSynced);
   }
 
@@ -294,9 +418,13 @@
     if (formCard) formCard.classList.add('hidden');
     if (successCard) successCard.classList.remove('hidden');
 
+    const genderDisplay = data.gender === 'Male' 
+      ? ((currentLang === 'ar') ? 'ذكر (Male)' : 'Male') 
+      : ((currentLang === 'ar') ? 'أنثى (Female)' : 'Female');
+
     document.getElementById('rcptNameVal').textContent = data.name;
     document.getElementById('rcptEmpNoVal').textContent = data.empNumber;
-    document.getElementById('rcptGenderVal').textContent = data.gender;
+    document.getElementById('rcptGenderVal').textContent = genderDisplay;
     document.getElementById('rcptDeptVal').textContent = data.department;
     document.getElementById('rcptTitleVal').textContent = data.jobTitle;
     document.getElementById('rcptGradeVal').textContent = data.grade;
@@ -307,13 +435,13 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     if (cloudSynced) {
-      showToast('Attendance recorded & synced with trainer laptop live! / تم تسجيل حضورك ووصل بنجاح للابتوب المدرب!', 'success');
+      showToast((currentLang === 'ar') ? 'تم تسجيل حضورك ووصل لشاشة المدرب مباشرة!' : 'Attendance registered live to trainer dashboard!', 'success');
     } else {
-      showToast('Attendance confirmed locally / تم تسجيل الحضور محلياً بنجاح', 'success');
+      showToast((currentLang === 'ar') ? 'تم تسجيل الحضور محلياً بنجاح' : 'Attendance saved locally', 'success');
     }
   }
 
-  // Register Another Attendee Button
+  // Register Another Colleague
   const btnNewCheckin = document.getElementById('btnNewCheckin');
   if (btnNewCheckin) {
     btnNewCheckin.addEventListener('click', function () {
@@ -323,13 +451,13 @@
       if (formCard) formCard.classList.remove('hidden');
       if (successCard) successCard.classList.add('hidden');
 
-      // Reset form fields
       const form = document.getElementById('traineeCheckinForm');
       if (form) form.reset();
 
+      const dict = translations[currentLang];
       if (btnSubmit) {
         btnSubmit.disabled = false;
-        btnSubmit.innerHTML = '<i class="fa-solid fa-check-circle"></i> <span data-i18n="btnConfirmAttendance">Confirm & Submit Attendance (تأكيد الحضور)</span>';
+        btnSubmit.innerHTML = `<i class="fa-solid fa-check-circle"></i> <span data-i18n="btnConfirmAttendance">${dict.btnConfirmAttendance}</span>`;
       }
 
       if (certLiveName) certLiveName.textContent = 'YOUR NAME IN ENGLISH';
@@ -354,7 +482,10 @@
     }, 4000);
   }
 
-  // Initialize on load
-  document.addEventListener('DOMContentLoaded', initSessionFromUrl);
+  // Initialize
+  document.addEventListener('DOMContentLoaded', () => {
+    applyLanguage(currentLang);
+    initSessionFromUrl();
+  });
 
 })();
