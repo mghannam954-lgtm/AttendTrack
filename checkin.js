@@ -7,52 +7,19 @@
 (function () {
   'use strict';
 
-  // 1. Firebase Initialization
-  const firebaseConfig = {
-    apiKey: "AIzaSyAMZ9MPm-SRsJJ4yVcjugnbZluFFTrWkYU",
-    authDomain: "unrwa-attend.firebaseapp.com",
-    databaseURL: "https://unrwa-attend-default-rtdb.firebaseio.com",
-    projectId: "unrwa-attend",
-    storageBucket: "unrwa-attend.firebasestorage.app",
-    messagingSenderId: "171058306827",
-    appId: "1:171058306827:web:878d2cfcffc35b19524c0e",
-    measurementId: "G-PWX4CL84BV"
-  };
-
-  let db = null;
-  try {
-    if (typeof firebase !== 'undefined') {
-      if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-      }
-      db = firebase.database();
-      console.log('Firebase Realtime Database initialized in Trainee Portal.');
-      updateCloudStatus(true);
-    } else {
-      console.warn('Firebase SDK not found; using local fallback.');
-      updateCloudStatus(false);
-    }
-  } catch (err) {
-    console.error('Firebase initialization error:', err);
-    updateCloudStatus(false);
-  }
-
-  function updateCloudStatus(isOnline) {
-    const badge = document.getElementById('cloudStatusBadge');
-    const text = document.getElementById('cloudStatusText');
-    if (!badge || !text) return;
-    if (isOnline) {
-      badge.className = 'status-pill status-connected';
-      text.textContent = (currentLang === 'ar') ? 'متصل' : 'Online';
-    } else {
-      badge.className = 'status-pill status-offline';
-      text.textContent = (currentLang === 'ar') ? 'محلي' : 'Local';
-    }
-  }
-
-  // 2. Bilingual Dictionary
+  // 1. Core State & Language (Declared first to avoid TDZ errors)
   let currentLang = 'ar'; // Default Arabic for Syria Field
 
+  let sessionData = {
+    course: 'UNRWA Staff Development Training',
+    location: 'Damascus Headquarters (HQ)',
+    trainer: 'Staff Development Trainer',
+    date: new Date().toISOString().split('T')[0],
+    time: '09:00 AM - 02:00 PM',
+    sessionId: 'session_default'
+  };
+
+  // 2. Bilingual Dictionary
   const translations = {
     ar: {
       portalSubTitle: 'بوابة تسجيل المتدربين',
@@ -138,6 +105,46 @@
     }
   };
 
+  // 3. Firebase Configuration & Safe Initialization
+  const firebaseConfig = {
+    apiKey: "AIzaSyAMZ9MPm-SRsJJ4yVcjugnbZluFFTrWkYU",
+    authDomain: "unrwa-attend.firebaseapp.com",
+    databaseURL: "https://unrwa-attend-default-rtdb.firebaseio.com",
+    projectId: "unrwa-attend",
+    storageBucket: "unrwa-attend.firebasestorage.app",
+    messagingSenderId: "171058306827",
+    appId: "1:171058306827:web:878d2cfcffc35b19524c0e",
+    measurementId: "G-PWX4CL84BV"
+  };
+
+  let db = null;
+  try {
+    if (typeof firebase !== 'undefined') {
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      db = firebase.database();
+      console.log('Firebase Realtime Database initialized in Trainee Portal.');
+    } else {
+      console.warn('Firebase SDK not found; local storage mode enabled.');
+    }
+  } catch (err) {
+    console.error('Firebase initialization error:', err);
+  }
+
+  function updateCloudStatus(isOnline) {
+    const badge = document.getElementById('cloudStatusBadge');
+    const text = document.getElementById('cloudStatusText');
+    if (!badge || !text) return;
+    if (isOnline) {
+      badge.className = 'status-pill status-connected';
+      text.textContent = (currentLang === 'ar') ? 'متصل' : 'Online';
+    } else {
+      badge.className = 'status-pill status-offline';
+      text.textContent = (currentLang === 'ar') ? 'محلي' : 'Local';
+    }
+  }
+
   function applyLanguage(lang) {
     currentLang = lang;
     document.documentElement.lang = lang;
@@ -168,17 +175,7 @@
     updateCloudStatus(db !== null);
   }
 
-  // Session Data & State
-  let sessionData = {
-    course: 'UNRWA Staff Development Training',
-    location: 'Damascus Headquarters (HQ)',
-    trainer: 'Staff Development Trainer',
-    date: new Date().toISOString().split('T')[0],
-    time: '09:00 AM - 02:00 PM',
-    sessionId: 'session_default'
-  };
-
-  // 3. Parse URL Parameters
+  // 4. Parse URL Parameters
   function initSessionFromUrl() {
     const params = new URLSearchParams(window.location.search);
     const c = params.get('c');
@@ -201,8 +198,11 @@
 
     renderSessionHeaders();
 
+    // If query params were missing, try fetching active session from Firebase with a safe timeout
     if (db && (!c || !sid)) {
-      db.ref('active_session').once('value').then((snap) => {
+      const fetchPromise = db.ref('active_session').once('value');
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2500));
+      Promise.race([fetchPromise, timeoutPromise]).then((snap) => {
         const val = snap.val();
         if (val) {
           sessionData = { ...sessionData, ...val };
@@ -228,66 +228,75 @@
     if (elCertCourse) elCertCourse.textContent = sessionData.course;
   }
 
-  // 4. Strict English Name Validation & Live Preview
+  // 5. Strict English Name Validation & Live Preview
   const arabicRegex = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/;
   const englishRegex = /^[A-Za-z\s.'-]+$/;
 
-  const traineeNameInput = document.getElementById('traineeNameInput');
-  const nameWarning = document.getElementById('nameValidationWarning');
-  const certLiveName = document.getElementById('certLiveName');
+  function initNameInputListener() {
+    const traineeNameInput = document.getElementById('traineeNameInput');
+    const nameWarning = document.getElementById('nameValidationWarning');
+    const certLiveName = document.getElementById('certLiveName');
 
-  if (traineeNameInput) {
-    traineeNameInput.addEventListener('input', function () {
-      const rawVal = this.value;
+    if (traineeNameInput) {
+      traineeNameInput.addEventListener('input', function () {
+        const rawVal = this.value;
 
-      if (arabicRegex.test(rawVal)) {
-        if (nameWarning) nameWarning.classList.remove('hidden');
-        traineeNameInput.classList.add('input-error');
-      } else {
-        if (nameWarning) nameWarning.classList.add('hidden');
-        traineeNameInput.classList.remove('input-error');
-      }
+        if (arabicRegex.test(rawVal)) {
+          if (nameWarning) nameWarning.classList.remove('hidden');
+          traineeNameInput.classList.add('input-error');
+        } else {
+          if (nameWarning) nameWarning.classList.add('hidden');
+          traineeNameInput.classList.remove('input-error');
+        }
 
-      const trimmed = rawVal.trim();
-      if (trimmed.length > 0) {
-        if (certLiveName) certLiveName.textContent = trimmed.toUpperCase();
-      } else {
-        if (certLiveName) certLiveName.textContent = 'YOUR NAME IN ENGLISH';
-      }
-    });
+        const trimmed = rawVal.trim();
+        if (trimmed.length > 0) {
+          if (certLiveName) certLiveName.textContent = trimmed.toUpperCase();
+        } else {
+          if (certLiveName) certLiveName.textContent = 'YOUR NAME IN ENGLISH';
+        }
+      });
+    }
   }
 
-  // 5. Custom Department Handling
-  const deptSelect = document.getElementById('deptSelect');
-  const deptCustomInput = document.getElementById('deptCustomInput');
-  if (deptSelect && deptCustomInput) {
-    deptSelect.addEventListener('change', function () {
-      if (this.value === '__custom__') {
-        deptCustomInput.classList.remove('hidden');
-        deptCustomInput.required = true;
-        deptCustomInput.focus();
-      } else {
-        deptCustomInput.classList.add('hidden');
-        deptCustomInput.required = false;
-      }
-    });
+  // 6. Custom Department Handling
+  function initDepartmentListener() {
+    const deptSelect = document.getElementById('deptSelect');
+    const deptCustomInput = document.getElementById('deptCustomInput');
+    if (deptSelect && deptCustomInput) {
+      deptSelect.addEventListener('change', function () {
+        if (this.value === '__custom__') {
+          deptCustomInput.classList.remove('hidden');
+          deptCustomInput.required = true;
+          deptCustomInput.focus();
+        } else {
+          deptCustomInput.classList.add('hidden');
+          deptCustomInput.required = false;
+        }
+      });
+    }
   }
 
-  // 6. Language Switcher Button
-  const btnLang = document.getElementById('langToggleBtn');
-  if (btnLang) {
-    btnLang.addEventListener('click', () => {
-      applyLanguage(currentLang === 'ar' ? 'en' : 'ar');
-    });
+  // 7. Language Switcher Button
+  function initLanguageListener() {
+    const btnLang = document.getElementById('langToggleBtn');
+    if (btnLang) {
+      btnLang.addEventListener('click', () => {
+        applyLanguage(currentLang === 'ar' ? 'en' : 'ar');
+      });
+    }
   }
 
-  // 7. Submit Form
-  const btnSubmit = document.getElementById('btnSubmitCheckin');
-  if (btnSubmit) {
-    btnSubmit.addEventListener('click', handleCheckinSubmit);
+  // 8. Submit Form with Timeout Protection
+  function initSubmitListener() {
+    const btnSubmit = document.getElementById('btnSubmitCheckin');
+    if (btnSubmit) {
+      btnSubmit.addEventListener('click', handleCheckinSubmit);
+    }
   }
 
   async function handleCheckinSubmit() {
+    const btnSubmit = document.getElementById('btnSubmitCheckin');
     const empNumInput = document.getElementById('empNumberInput');
     const nameInput = document.getElementById('traineeNameInput');
     const genderChecked = document.querySelector('input[name="traineeGender"]:checked');
@@ -355,8 +364,10 @@
     }
 
     // Disable button to prevent double tap
-    btnSubmit.disabled = true;
-    btnSubmit.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${dict.btnSubmitting}`;
+    if (btnSubmit) {
+      btnSubmit.disabled = true;
+      btnSubmit.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${dict.btnSubmitting}`;
+    }
 
     const now = new Date();
     const attendeeData = {
@@ -377,16 +388,18 @@
       displayTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
-    // 1. Send to Firebase Realtime Database
+    // 1. Send to Firebase Realtime Database with 3.5s timeout guarantee
     let cloudSynced = false;
     if (db) {
       try {
         const sessionRef = db.ref('sessions/' + sessionData.sessionId + '/attendees');
-        await sessionRef.push(attendeeData);
+        const pushPromise = sessionRef.push(attendeeData);
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase timeout')), 3500));
+        await Promise.race([pushPromise, timeoutPromise]);
         cloudSynced = true;
         console.log('Saved to Firebase Realtime Database.');
       } catch (err) {
-        console.error('Firebase save error:', err);
+        console.warn('Firebase network timeout or error, continuing with local confirmation:', err);
       }
     }
 
@@ -437,32 +450,37 @@
     if (cloudSynced) {
       showToast((currentLang === 'ar') ? 'تم تسجيل حضورك ووصل لشاشة المدرب مباشرة!' : 'Attendance registered live to trainer dashboard!', 'success');
     } else {
-      showToast((currentLang === 'ar') ? 'تم تسجيل الحضور محلياً بنجاح' : 'Attendance saved locally', 'success');
+      showToast((currentLang === 'ar') ? 'تم تسجيل الحضور محلياً بنجاح' : 'Attendance confirmed locally', 'success');
     }
   }
 
   // Register Another Colleague
-  const btnNewCheckin = document.getElementById('btnNewCheckin');
-  if (btnNewCheckin) {
-    btnNewCheckin.addEventListener('click', function () {
-      const formCard = document.getElementById('traineeFormCard');
-      const successCard = document.getElementById('checkinSuccessCard');
+  function initRegisterAnotherListener() {
+    const btnNewCheckin = document.getElementById('btnNewCheckin');
+    const btnSubmit = document.getElementById('btnSubmitCheckin');
+    const certLiveName = document.getElementById('certLiveName');
 
-      if (formCard) formCard.classList.remove('hidden');
-      if (successCard) successCard.classList.add('hidden');
+    if (btnNewCheckin) {
+      btnNewCheckin.addEventListener('click', function () {
+        const formCard = document.getElementById('traineeFormCard');
+        const successCard = document.getElementById('checkinSuccessCard');
 
-      const form = document.getElementById('traineeCheckinForm');
-      if (form) form.reset();
+        if (formCard) formCard.classList.remove('hidden');
+        if (successCard) successCard.classList.add('hidden');
 
-      const dict = translations[currentLang];
-      if (btnSubmit) {
-        btnSubmit.disabled = false;
-        btnSubmit.innerHTML = `<i class="fa-solid fa-check-circle"></i> <span data-i18n="btnConfirmAttendance">${dict.btnConfirmAttendance}</span>`;
-      }
+        const form = document.getElementById('traineeCheckinForm');
+        if (form) form.reset();
 
-      if (certLiveName) certLiveName.textContent = 'YOUR NAME IN ENGLISH';
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
+        const dict = translations[currentLang];
+        if (btnSubmit) {
+          btnSubmit.disabled = false;
+          btnSubmit.innerHTML = `<i class="fa-solid fa-check-circle"></i> <span data-i18n="btnConfirmAttendance">${dict.btnConfirmAttendance}</span>`;
+        }
+
+        if (certLiveName) certLiveName.textContent = 'YOUR NAME IN ENGLISH';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
   }
 
   // Toast Function
@@ -486,6 +504,11 @@
   document.addEventListener('DOMContentLoaded', () => {
     applyLanguage(currentLang);
     initSessionFromUrl();
+    initNameInputListener();
+    initDepartmentListener();
+    initLanguageListener();
+    initSubmitListener();
+    initRegisterAnotherListener();
   });
 
 })();
