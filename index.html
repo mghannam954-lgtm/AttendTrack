@@ -276,85 +276,34 @@
 
       </div>
 
-      <!-- Live Attendance Feed / Table Section -->
-      <div class="grid-card attendance-roster-card mt-6">
+      <!-- Section 3: Training Sessions Folders & Dedicated Attendance Archive -->
+      <div class="grid-card sessions-archive-card mt-6">
         <div class="card-header flex-between flex-wrap gap-4">
           <div>
             <div class="header-icon-title">
-              <i class="fa-solid fa-users-viewfinder text-unrwa"></i>
-              <h2 data-i18n="rosterTitle">3. Live Training Attendance Feed</h2>
+              <i class="fa-solid fa-folder-tree text-unrwa"></i>
+              <h2 data-i18n="sessionsArchiveTitle">3. Training Courses Archive & Attendance Folders (سجلات الدورات وقوائم الحضور)</h2>
             </div>
-            <p class="card-hint" data-i18n="rosterSubtitle">Real-time attendee list. Instant sync from mobile attendees with zero refresh needed.</p>
+            <p class="card-hint" data-i18n="sessionsArchiveSubtitle">Each course has its own folder, isolated attendance roster, and dedicated Excel download button.</p>
           </div>
 
           <div class="roster-actions">
             <!-- Search Input -->
             <div class="search-box">
               <i class="fa-solid fa-magnifying-glass"></i>
-              <input type="text" id="rosterSearch" placeholder="Search by name, number, department..." data-i18n-ph="searchPlaceholder">
+              <input type="text" id="archiveSearch" placeholder="Search courses or attendees..." data-i18n-ph="searchArchivePh">
             </div>
 
-            <!-- Export to Excel Button -->
-            <button id="btnExportExcel" class="btn btn-success">
-              <i class="fa-solid fa-file-excel"></i>
-              <span data-i18n="btnExportExcel">Export to Excel (.xlsx)</span>
-            </button>
-
-            <!-- Clear Data Button -->
-            <button id="btnClearData" class="btn btn-danger-outline" title="Clear attendee list">
+            <!-- Clear All Archive -->
+            <button id="btnClearAllSessions" class="btn btn-danger-outline" title="Clear All Archive / مسح الأرشيف">
               <i class="fa-solid fa-trash-can"></i>
             </button>
           </div>
         </div>
 
-        <!-- Quick Summary Stats Bar -->
-        <div class="roster-summary-bar">
-          <div class="mini-stat">
-            <span class="mini-stat-label" data-i18n="statTotalAttendees">Total Attendees:</span>
-            <span class="mini-stat-val" id="summaryTotal">0</span>
-          </div>
-          <div class="mini-stat">
-            <span class="mini-stat-label" data-i18n="statGenderRatio">Gender (M / F):</span>
-            <span class="mini-stat-val" id="summaryGender">0 / 0</span>
-          </div>
-          <div class="mini-stat">
-            <span class="mini-stat-label" data-i18n="statDepts">Departments:</span>
-            <span class="mini-stat-val" id="summaryDepts">0</span>
-          </div>
-          <div class="mini-stat">
-            <span class="mini-stat-label" data-i18n="statLatestCheckin">Latest Check-in:</span>
-            <span class="mini-stat-val" id="summaryLatest">--</span>
-          </div>
-        </div>
-
-        <!-- Table Container -->
-        <div class="table-responsive">
-          <table class="data-table" id="attendanceTable">
-            <thead>
-              <tr>
-                <th width="40">#</th>
-                <th data-i18n="thEmpNo">Employee #</th>
-                <th data-i18n="thTraineeName">Trainee Name (English)</th>
-                <th data-i18n="thGender">Gender</th>
-                <th data-i18n="thDepartment">Department</th>
-                <th data-i18n="thJobTitle">Title</th>
-                <th data-i18n="thGrade">Grade</th>
-                <th data-i18n="thTimestamp">Time</th>
-                <th data-i18n="thActions">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="attendanceTableBody">
-              <tr class="empty-row" id="emptyStateRow">
-                <td colspan="9">
-                  <div class="empty-state">
-                    <i class="fa-solid fa-clipboard-user"></i>
-                    <h4 data-i18n="emptyStateTitle">No Attendees Registered Yet</h4>
-                    <p data-i18n="emptyStateDesc">Trainees scanning the QR code from their mobile phones will appear here instantly in real-time.</p>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <!-- Folders Accordion Container -->
+        <div id="sessionsAccordionContainer" class="sessions-accordion-list">
+          <!-- Injected dynamically by app.js -->
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 /**
- * AttendTrack - HR & Trainer Portal Logic
+ * AttendTrack - HR & Trainer Portal Logic (Sessions Archive & Folders)
  * UNRWA HR Staff Development & Training Division
- * Real-time Firebase Sync + Dynamic QR Codes + Excel (.xlsx) Export
+ * Real-time Firebase Sync + Isolated Course Folders + Dedicated Excel Exports
  */
 
 (function () {
@@ -52,15 +52,14 @@
 
   // 2. Application State
   let currentSession = null;
-  let attendees = [];
+  let allSessions = []; // Array of session objects: { sessionId, course, trainer, location, date, time, attendees: [], isExpanded: bool }
   let currentLang = 'en'; // 'en' | 'ar'
   let adminQr = null;
   let projectorQr = null;
   let flyerQr = null;
-  let activeFirebaseListenerRef = null;
   let isInitialFirebaseLoad = true;
 
-  // 3. Audio Chime (Web Audio API - No external mp3 file needed)
+  // 3. Audio Chime (Web Audio API)
   function playCheckinChime() {
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -88,7 +87,7 @@
       adminHeroDesc: 'Generate dynamic QR codes for mobile attendance registration with live English name validation and single-click Excel export.',
       badgeOfficial: 'Official UNRWA Staff Development Portal',
       statRegistered: 'Total Registered',
-      statActiveSession: 'Active Session',
+      statActiveSession: 'Active Sessions',
       sessionSetupTitle: '1. Session Details (إعداد الجلسة)',
       sessionSetupHint: 'Set details to activate session QR',
       lblCourseName: 'Course / Training Name (اسم الدورة)',
@@ -108,14 +107,9 @@
       btnTestCheckin: 'Test Trainee Page',
       hostLabel: 'QR Destination Link (رابط مسح الكود للمتدربين):',
       btnEditHost: 'Change / تغيير',
-      rosterTitle: '3. Live Training Attendance Feed',
-      rosterSubtitle: 'Real-time attendee list. Instant sync from mobile attendees with zero refresh needed.',
-      searchPlaceholder: 'Search by name, number, department...',
-      btnExportExcel: 'Export to Excel (.xlsx)',
-      statTotalAttendees: 'Total Attendees:',
-      statGenderRatio: 'Gender (M / F):',
-      statDepts: 'Departments:',
-      statLatestCheckin: 'Latest Check-in:',
+      sessionsArchiveTitle: '3. Training Courses Archive & Attendance Folders (سجلات الدورات وقوائم الحضور)',
+      sessionsArchiveSubtitle: 'Each course has its own folder, isolated attendance roster, and dedicated Excel download button.',
+      searchArchivePh: 'Search courses or attendees...',
       thEmpNo: 'Employee #',
       thTraineeName: 'Trainee Name (English)',
       thGender: 'Gender',
@@ -124,8 +118,6 @@
       thGrade: 'Grade',
       thTimestamp: 'Time',
       thActions: 'Actions',
-      emptyStateTitle: 'No Attendees Registered Yet',
-      emptyStateDesc: 'Trainees scanning the QR code from their mobile phones will appear here instantly in real-time.',
       projInstructionTitle: 'Scan QR with your phone camera to register attendance',
       projInstructionDesc: 'Ensure your name is typed accurately in English for your official completion certificate.',
       projLiveCount: 'Attendees Registered:',
@@ -138,7 +130,7 @@
       adminHeroDesc: 'توليد رموز QR ذكية لتسجيل الحضور عبر الموبايل مع تدقيق فوري للأسماء بالإنكليزية وتصدير كشف إكسل رسمي بنقرة واحدة.',
       badgeOfficial: 'بوابة التدريب الرسمية - قسم الموارد البشرية بالأونروا',
       statRegistered: 'إجمالي الحاضرين',
-      statActiveSession: 'الجلسة النشطة',
+      statActiveSession: 'الدورات المفتوحة',
       sessionSetupTitle: '1. بيانات الجلسة التدريبية',
       sessionSetupHint: 'حدد البيانات لتوليد الـ QR كود وتفعيل الجلسة',
       lblCourseName: 'اسم الدورة / التدريب',
@@ -158,14 +150,9 @@
       btnTestCheckin: 'تجربة صفحة المتدرب',
       hostLabel: 'رابط مسح الكود للمتدربين:',
       btnEditHost: 'تعديل',
-      rosterTitle: '3. كشف الحضور المباشر (لحظي)',
-      rosterSubtitle: 'قائمة المتدربين المسجلين مباشرة من هواتفهم دون الحاجة لأي تحديث.',
-      searchPlaceholder: 'بحث بالاسم، الرقم الوظيفي، القسم...',
-      btnExportExcel: 'تصدير كشف إكسل (.xlsx)',
-      statTotalAttendees: 'إجمالي الحضور:',
-      statGenderRatio: 'الجنس (ذكور / إناث):',
-      statDepts: 'الأقسام:',
-      statLatestCheckin: 'آخر تسجيل:',
+      sessionsArchiveTitle: '3. أرشيف الدورات التدريبية وسجلات الحضور المستقلة',
+      sessionsArchiveSubtitle: 'كل دورة يتم إنشاؤها لها مجلد خاص، قائمة حضور مستقلة تماماً، وزر مباشر لتحميل ملف الإكسل الخاص بها.',
+      searchArchivePh: 'بحث بالدورة أو بالاسم...',
       thEmpNo: 'الرقم الوظيفي',
       thTraineeName: 'اسم المتدرب (إنكليزي)',
       thGender: 'الجنس',
@@ -174,8 +161,6 @@
       thGrade: 'الدرجة',
       thTimestamp: 'الوقت',
       thActions: 'إجراءات',
-      emptyStateTitle: 'لا يوجد متدربون مسجلون بعد',
-      emptyStateDesc: 'بمجرد أن يمسح المتدربون الـ QR كود من هواتفهم، ستظهر أسماؤهم هنا فوراً بلحظتها.',
       projInstructionTitle: 'امسح الـ QR كود بكاميرا الموبايل لتسجيل حضورك',
       projInstructionDesc: 'يرجى كتابة الاسم بدقة باللغة الإنكليزية لطباعة الشهادة الرسمية.',
       projLiveCount: 'المسجلون حالياً:',
@@ -206,6 +191,8 @@
       const key = el.getAttribute('data-i18n-ph');
       if (dict[key]) el.placeholder = dict[key];
     });
+
+    renderSessionsAccordion();
   }
 
   // 5. Host URL Resolution
@@ -222,24 +209,25 @@
     return window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '').replace(/\/+$/, '');
   }
 
-  function generateCheckinUrl() {
-    if (!currentSession) return '';
+  function generateCheckinUrl(session = null) {
+    const targetSession = session || currentSession;
+    if (!targetSession) return '';
     const base = getBaseHostUrl();
     const cleanBase = base.startsWith('http') ? base : 'https://' + base;
     const url = new URL(cleanBase + '/checkin.html');
-    url.searchParams.set('c', currentSession.course);
-    url.searchParams.set('loc', currentSession.location);
-    url.searchParams.set('tr', currentSession.trainer);
-    url.searchParams.set('d', currentSession.date);
-    url.searchParams.set('t', currentSession.time);
-    url.searchParams.set('sid', currentSession.sessionId);
+    url.searchParams.set('c', targetSession.course);
+    url.searchParams.set('loc', targetSession.location);
+    url.searchParams.set('tr', targetSession.trainer);
+    url.searchParams.set('d', targetSession.date);
+    url.searchParams.set('t', targetSession.time);
+    url.searchParams.set('sid', targetSession.sessionId);
     return url.toString();
   }
 
   // 6. QR Code Rendering
   function renderQrCodes() {
     if (!currentSession) return;
-    const targetUrl = generateCheckinUrl();
+    const targetUrl = generateCheckinUrl(currentSession);
     if (!targetUrl) return;
 
     if (typeof QRCode === 'undefined') {
@@ -301,6 +289,15 @@
     currentSession = sessionObj;
     localStorage.setItem('attendtrack_active_session_v1', JSON.stringify(sessionObj));
 
+    // Ensure session is in allSessions
+    let existingIndex = allSessions.findIndex(s => s.sessionId === sessionObj.sessionId);
+    if (existingIndex >= 0) {
+      allSessions[existingIndex] = { ...allSessions[existingIndex], ...sessionObj, isExpanded: true };
+    } else {
+      allSessions.unshift({ ...sessionObj, attendees: [], isExpanded: true });
+    }
+    saveLocalSessions();
+
     // Update UI elements
     const placeholder = document.getElementById('qrStandbyPlaceholder');
     const content = document.getElementById('qrActiveContent');
@@ -335,133 +332,327 @@
     // Render QRs
     renderQrCodes();
 
-    // Sync Active Session with Firebase
+    // Sync Session meta with Firebase
     if (db) {
       db.ref('active_session').set(sessionObj).catch(console.warn);
+      db.ref('sessions/' + sessionObj.sessionId + '/meta').set(sessionObj).catch(console.warn);
     }
 
-    // Attach Real-time Firebase Listener
-    listenToSessionAttendees(sessionObj.sessionId);
+    // Refresh accordion UI
+    renderSessionsAccordion();
+    updateGlobalStats();
   }
 
-  // 8. Real-time Firebase Listener
-  function listenToSessionAttendees(sessionId) {
-    if (!db || !sessionId) return;
+  // 8. Real-time Firebase Sync for ALL Sessions
+  function initRealtimeFirebaseSync() {
+    if (!db) return;
 
-    if (activeFirebaseListenerRef) {
-      activeFirebaseListenerRef.off();
-    }
+    // Listen to sessions node
+    db.ref('sessions').on('value', (snapshot) => {
+      const val = snapshot.val();
+      if (!val) return;
 
-    isInitialFirebaseLoad = true;
-    const sessionAttendeesRef = db.ref('sessions/' + sessionId + '/attendees');
-    activeFirebaseListenerRef = sessionAttendeesRef;
+      let hasChanges = false;
+      let newAttendeeArrival = null;
 
-    sessionAttendeesRef.on('child_added', (snapshot) => {
-      const data = snapshot.val();
-      if (!data) return;
+      Object.keys(val).forEach(sid => {
+        const remoteSession = val[sid];
+        const meta = remoteSession.meta || {};
+        const remoteAttendeesMap = remoteSession.attendees || {};
+        const remoteAttendeesList = Object.values(remoteAttendeesMap);
 
-      const exists = attendees.some(a => a.id === data.id || (a.empNumber === data.empNumber && a.sessionId === data.sessionId));
-      if (!exists) {
-        attendees.unshift(data);
-        saveLocalAttendeesBackup();
-        renderAttendanceTable();
-        updateSummaryStats();
+        let localSession = allSessions.find(s => s.sessionId === sid);
+        if (!localSession) {
+          localSession = {
+            sessionId: sid,
+            course: meta.course || 'Training Session',
+            trainer: meta.trainer || 'Trainer',
+            location: meta.location || 'UNRWA Station',
+            date: meta.date || new Date().toISOString().split('T')[0],
+            time: meta.time || '09:00 AM - 02:00 PM',
+            attendees: [],
+            isExpanded: (currentSession && currentSession.sessionId === sid)
+          };
+          allSessions.push(localSession);
+          hasChanges = true;
+        }
 
-        // If not initial batch load, alert trainer!
-        if (!isInitialFirebaseLoad) {
+        // Check for new attendees in this session
+        const prevCount = localSession.attendees.length;
+        localSession.attendees = remoteAttendeesList.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        if (!isInitialFirebaseLoad && localSession.attendees.length > prevCount) {
+          hasChanges = true;
+          newAttendeeArrival = {
+            attendee: localSession.attendees[0],
+            course: localSession.course
+          };
+        }
+      });
+
+      if (hasChanges || isInitialFirebaseLoad) {
+        saveLocalSessions();
+        renderSessionsAccordion();
+        updateGlobalStats();
+
+        if (newAttendeeArrival && !isInitialFirebaseLoad) {
           playCheckinChime();
-          showToast(`✨ الحضور الجديد: ${data.name} (${data.department})`, 'success');
+          showToast(`✨ تسجيل جديد في [${newAttendeeArrival.course}]: ${newAttendeeArrival.attendee.name} (${newAttendeeArrival.attendee.department})`, 'success');
         }
       }
     });
 
-    // Mark initial load finished after 1.5 seconds
     setTimeout(() => {
       isInitialFirebaseLoad = false;
-    }, 1500);
+    }, 2000);
   }
 
-  function saveLocalAttendeesBackup() {
+  function saveLocalSessions() {
     try {
-      localStorage.setItem('attendtrack_attendees_v1', JSON.stringify(attendees));
+      localStorage.setItem('attendtrack_all_sessions_v2', JSON.stringify(allSessions));
     } catch (e) {
       console.warn(e);
     }
   }
 
-  // 9. Render Attendance Table
-  function renderAttendanceTable(filteredList = null) {
-    const tbody = document.getElementById('attendanceTableBody');
-    if (!tbody) return;
+  // 9. Render Sessions Folders Accordion
+  function renderSessionsAccordion(searchQuery = '') {
+    const container = document.getElementById('sessionsAccordionContainer');
+    if (!container) return;
 
-    const list = filteredList || attendees;
-
-    if (list.length === 0) {
-      tbody.innerHTML = `
-        <tr class="empty-row" id="emptyStateRow">
-          <td colspan="9">
-            <div class="empty-state">
-              <i class="fa-solid fa-clipboard-user"></i>
-              <h4 data-i18n="emptyStateTitle">${(currentLang === 'ar') ? 'لا يوجد متدربون مسجلون بعد' : 'No Attendees Registered Yet'}</h4>
-              <p data-i18n="emptyStateDesc">${(currentLang === 'ar') ? 'بمجرد أن يمسح المتدربون الـ QR كود من هواتفهم، ستظهر أسماؤهم هنا فوراً بلحظتها.' : 'Trainees scanning the QR code from their mobile phones will appear here instantly in real-time.'}</p>
-            </div>
-          </td>
-        </tr>
+    if (allSessions.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state" style="padding: 3rem 1rem;">
+          <i class="fa-solid fa-folder-open" style="font-size: 3rem; color: var(--text-light); margin-bottom: 1rem;"></i>
+          <h4>${(currentLang === 'ar') ? 'لا توجد دورات تدريبية منشأة بعد' : 'No Training Sessions Created Yet'}</h4>
+          <p>${(currentLang === 'ar') ? 'قم بتعبئة بيانات الدورة في الأعلى واضغط "تفعيل الجلسة وتوليد QR كود" لإنشاء مجلد الدورة وكشف حضورها.' : 'Fill out session details above and click "Generate QR & Activate Session" to create your first course folder.'}</p>
+        </div>
       `;
       return;
     }
 
-    tbody.innerHTML = list.map((item, index) => {
-      const genderBadge = item.gender === 'Male'
-        ? '<span class="badge badge-male"><i class="fa-solid fa-person"></i> Male</span>'
-        : '<span class="badge badge-female"><i class="fa-solid fa-person-dress"></i> Female</span>';
+    const filtered = allSessions.filter(s => {
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase().trim();
+      const inCourse = s.course.toLowerCase().includes(q);
+      const inTrainer = s.trainer.toLowerCase().includes(q);
+      const inLocation = s.location.toLowerCase().includes(q);
+      const inAttendees = (s.attendees || []).some(a =>
+        a.name.toLowerCase().includes(q) ||
+        a.empNumber.toLowerCase().includes(q) ||
+        a.department.toLowerCase().includes(q)
+      );
+      return inCourse || inTrainer || inLocation || inAttendees;
+    });
+
+    if (filtered.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <p>${(currentLang === 'ar') ? 'لا توجد نتائج مطابقة لبحثك.' : 'No courses or attendees matching your search.'}</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = filtered.map(session => {
+      const isActive = currentSession && currentSession.sessionId === session.sessionId;
+      const attendeeCount = (session.attendees || []).length;
+      const expandedClass = session.isExpanded ? 'expanded' : '';
+      const activeClass = isActive ? 'is-active-session' : '';
+
+      const liveBadge = isActive
+        ? `<span class="badge-live-now"><span class="pulse-dot"></span> ${(currentLang === 'ar') ? 'مباشر الآن' : 'Live Now'}</span>`
+        : '';
+
+      const maleCount = (session.attendees || []).filter(a => a.gender === 'Male').length;
+      const femaleCount = (session.attendees || []).filter(a => a.gender === 'Female').length;
+      const deptsCount = new Set((session.attendees || []).map(a => a.department)).size;
+
+      // Table Rows
+      let tableRows = '';
+      if (attendeeCount === 0) {
+        tableRows = `
+          <tr class="empty-row">
+            <td colspan="9">
+              <div class="empty-state" style="padding: 1.5rem;">
+                <i class="fa-solid fa-clipboard-user"></i>
+                <h5>${(currentLang === 'ar') ? 'لا يوجد حضور مسجلون في هذه الدورة بعد' : 'No Attendees Registered in This Course Yet'}</h5>
+                <p><small>${(currentLang === 'ar') ? 'امسح الـ QR كود المخصص لهذه الدورة لتسجيل الحضور فورياً.' : 'Scan the QR code for this session to register attendees in real-time.'}</small></p>
+              </div>
+            </td>
+          </tr>
+        `;
+      } else {
+        tableRows = (session.attendees || []).map((att, idx) => {
+          const genderBadge = att.gender === 'Male'
+            ? '<span class="badge badge-male"><i class="fa-solid fa-person"></i> Male</span>'
+            : '<span class="badge badge-female"><i class="fa-solid fa-person-dress"></i> Female</span>';
+
+          return `
+            <tr>
+              <td>${idx + 1}</td>
+              <td><strong>${escapeHtml(att.empNumber)}</strong></td>
+              <td class="font-bold text-unrwa">${escapeHtml(att.name)}</td>
+              <td>${genderBadge}</td>
+              <td>${escapeHtml(att.department)}</td>
+              <td>${escapeHtml(att.jobTitle)}</td>
+              <td><span class="badge badge-grade">${escapeHtml(att.grade)}</span></td>
+              <td><small class="text-muted">${escapeHtml(att.displayTime || '')}</small></td>
+              <td>
+                <button class="btn-icon text-danger" title="Delete Attendee" onclick="event.stopPropagation(); window.AttendTrackAdmin.deleteAttendee('${session.sessionId}', '${att.id}')">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
 
       return `
-        <tr class="attendee-row" data-id="${item.id}">
-          <td>${index + 1}</td>
-          <td><strong>${escapeHtml(item.empNumber)}</strong></td>
-          <td class="font-bold text-unrwa">${escapeHtml(item.name)}</td>
-          <td>${genderBadge}</td>
-          <td>${escapeHtml(item.department)}</td>
-          <td>${escapeHtml(item.jobTitle)}</td>
-          <td><span class="badge badge-grade">${escapeHtml(item.grade)}</span></td>
-          <td><small class="text-muted">${escapeHtml(item.displayTime || '')}</small></td>
-          <td>
-            <button class="btn-icon text-danger" title="Delete" onclick="window.AttendTrackAdmin.deleteAttendee('${item.id}')">
-              <i class="fa-solid fa-trash-can"></i>
-            </button>
-          </td>
-        </tr>
+        <div class="session-folder ${activeClass} ${expandedClass}" id="folder_${session.sessionId}">
+          <!-- Folder Header (Always Visible) -->
+          <div class="folder-header" onclick="window.AttendTrackAdmin.toggleFolder('${session.sessionId}')">
+            
+            <div class="folder-left-info">
+              <div class="folder-icon-box">
+                <i class="fa-solid ${isActive ? 'fa-folder-open' : 'fa-folder'}"></i>
+              </div>
+              <div class="folder-title-group">
+                <h3 class="folder-course-title">
+                  <span>${escapeHtml(session.course)}</span>
+                  ${liveBadge}
+                </h3>
+                <div class="folder-meta-row">
+                  <span><i class="fa-solid fa-location-dot"></i> ${escapeHtml(session.location)}</span>
+                  <span><i class="fa-solid fa-user-tie"></i> ${escapeHtml(session.trainer)}</span>
+                  <span><i class="fa-solid fa-calendar"></i> ${escapeHtml(session.date)}</span>
+                  <span><i class="fa-solid fa-clock"></i> ${escapeHtml(session.time)}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Folder Right Controls -->
+            <div class="folder-right-controls" onclick="event.stopPropagation();">
+              
+              <!-- Attendee Counter -->
+              <span class="folder-attendee-counter" title="Total Attendees">
+                <i class="fa-solid fa-users text-unrwa"></i>
+                <b>${attendeeCount}</b> ${(currentLang === 'ar') ? 'متدرب' : 'Attendees'}
+              </span>
+
+              <!-- Dedicated Excel Button for THIS COURSE ONLY -->
+              <button type="button" class="btn-folder-excel" onclick="window.AttendTrackAdmin.exportSessionExcel('${session.sessionId}')" title="Download Excel for this course">
+                <i class="fa-solid fa-file-excel"></i>
+                <span>${(currentLang === 'ar') ? 'تصدير إكسل (.xlsx)' : 'Export Excel'}</span>
+              </button>
+
+              <!-- Activate QR Code Button (if not already active) -->
+              ${!isActive ? `
+                <button type="button" class="btn-folder-activate" onclick="window.AttendTrackAdmin.activateSessionQr('${session.sessionId}')" title="Make this the active QR code">
+                  <i class="fa-solid fa-qrcode"></i>
+                  <span>${(currentLang === 'ar') ? 'تفعيل الكود' : 'Activate QR'}</span>
+                </button>
+              ` : ''}
+
+              <!-- Delete Folder Button -->
+              <button type="button" class="btn-icon text-danger" onclick="window.AttendTrackAdmin.deleteSession('${session.sessionId}')" title="Delete Course">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+
+              <!-- Toggle Chevron -->
+              <div class="folder-chevron" onclick="window.AttendTrackAdmin.toggleFolder('${session.sessionId}')">
+                <i class="fa-solid fa-chevron-down"></i>
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- Folder Body (Drawer / Accordion View) -->
+          <div class="folder-body">
+            
+            <!-- Quick Course Stats -->
+            <div class="folder-summary-stats">
+              <div class="folder-stat-pill">
+                <span>${(currentLang === 'ar') ? 'المسجلون:' : 'Registered:'}</span>
+                <strong>${attendeeCount}</strong>
+              </div>
+              <div class="folder-stat-pill">
+                <span>${(currentLang === 'ar') ? 'ذكور / إناث:' : 'Gender (M/F):'}</span>
+                <strong>${maleCount} / ${femaleCount}</strong>
+              </div>
+              <div class="folder-stat-pill">
+                <span>${(currentLang === 'ar') ? 'الأقسام:' : 'Departments:'}</span>
+                <strong>${deptsCount}</strong>
+              </div>
+              <div class="folder-stat-pill">
+                <span>${(currentLang === 'ar') ? 'رابط التسجيل:' : 'Check-in URL:'}</span>
+                <a href="${generateCheckinUrl(session)}" target="_blank" style="color: var(--un-blue-primary); font-size: 0.8rem; text-decoration: underline;">
+                  ${(currentLang === 'ar') ? 'فتح استمارة المتدرب' : 'Open Form'}
+                </a>
+              </div>
+            </div>
+
+            <!-- Table of Attendees for this Course -->
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th width="40">#</th>
+                    <th>${(currentLang === 'ar') ? 'الرقم الوظيفي' : 'Employee #'}</th>
+                    <th>${(currentLang === 'ar') ? 'اسم المتدرب (إنكليزي)' : 'Trainee Name (English)'}</th>
+                    <th>${(currentLang === 'ar') ? 'الجنس' : 'Gender'}</th>
+                    <th>${(currentLang === 'ar') ? 'القسم / الدائرة' : 'Department'}</th>
+                    <th>${(currentLang === 'ar') ? 'المسمى الوظيفي' : 'Title'}</th>
+                    <th>${(currentLang === 'ar') ? 'الدرجة' : 'Grade'}</th>
+                    <th>${(currentLang === 'ar') ? 'وقت التسجيل' : 'Time'}</th>
+                    <th>${(currentLang === 'ar') ? 'إجراء' : 'Action'}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${tableRows}
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
       `;
     }).join('');
   }
 
-  function updateSummaryStats() {
-    const total = attendees.length;
-    const maleCount = attendees.filter(a => a.gender === 'Male').length;
-    const femaleCount = attendees.filter(a => a.gender === 'Female').length;
-    const uniqueDepts = new Set(attendees.map(a => a.department)).size;
-    const latest = attendees.length > 0 ? attendees[0].displayTime : '--';
+  // 10. Update Global Top Hero Stats
+  function updateGlobalStats() {
+    let grandTotal = 0;
+    allSessions.forEach(s => {
+      grandTotal += (s.attendees || []).length;
+    });
 
-    const elTotal = document.getElementById('summaryTotal');
     const elHeroTotal = document.getElementById('heroTotalAttendees');
+    const elActiveSessions = document.getElementById('heroActiveSessions');
     const elProjCount = document.getElementById('projAttendeeCount');
-    const elGender = document.getElementById('summaryGender');
-    const elDepts = document.getElementById('summaryDepts');
-    const elLatest = document.getElementById('summaryLatest');
 
-    if (elTotal) elTotal.textContent = total;
-    if (elHeroTotal) elHeroTotal.textContent = total;
-    if (elProjCount) elProjCount.textContent = total;
-    if (elGender) elGender.textContent = `${maleCount} / ${femaleCount}`;
-    if (elDepts) elDepts.textContent = uniqueDepts;
-    if (elLatest) elLatest.textContent = latest;
+    if (elHeroTotal) elHeroTotal.textContent = grandTotal;
+    if (elActiveSessions) elActiveSessions.textContent = allSessions.length;
+
+    // In projector mode, show attendee count for currently active session
+    if (elProjCount && currentSession) {
+      const activeObj = allSessions.find(s => s.sessionId === currentSession.sessionId);
+      elProjCount.textContent = activeObj ? (activeObj.attendees || []).length : 0;
+    }
   }
 
-  // 10. Excel (.xlsx) Export
-  function exportAttendanceToExcel() {
-    if (attendees.length === 0) {
-      showToast((currentLang === 'ar') ? 'لا يوجد متدربون مسجلون لتصديرهم!' : 'No attendees registered to export!', 'error');
+  // 11. Excel Export FOR A SPECIFIC SESSION ONLY
+  function exportSessionExcel(sessionId) {
+    const session = allSessions.find(s => s.sessionId === sessionId);
+    if (!session) {
+      showToast('Session not found', 'error');
+      return;
+    }
+
+    const sessionAttendees = session.attendees || [];
+    if (sessionAttendees.length === 0) {
+      showToast((currentLang === 'ar') ? `لا يوجد حضور مسجلون في دورة [${session.course}] لتصديرهم!` : `No attendees registered in [${session.course}] to export!`, 'error');
       return;
     }
 
@@ -470,12 +661,7 @@
       return;
     }
 
-    const courseName = currentSession ? currentSession.course : 'UNRWA Training';
-    const sessionLoc = currentSession ? currentSession.location : 'Damascus';
-    const sessionDate = currentSession ? currentSession.date : new Date().toISOString().split('T')[0];
-    const trainerName = currentSession ? currentSession.trainer : 'Trainer';
-
-    const excelData = attendees.map((item, idx) => ({
+    const excelData = sessionAttendees.map((item, idx) => ({
       '#': idx + 1,
       'الرقم الوظيفي / Emp No': item.empNumber,
       'اسم المتدرب (إنكليزي) / Trainee Name': item.name,
@@ -483,24 +669,104 @@
       'القسم أو الدائرة / Department': item.department,
       'المسمى الوظيفي / Job Title': item.jobTitle,
       'الدرجة / Grade': item.grade,
-      'الدورة / Course': item.course || courseName,
-      'المكان / Location': item.location || sessionLoc,
-      'المدرب / Trainer': item.trainer || trainerName,
-      'التاريخ / Date': item.date || sessionDate,
+      'الدورة / Course': session.course,
+      'المكان / Location': session.location,
+      'المدرب / Trainer': session.trainer,
+      'التاريخ / Date': session.date,
       'وقت التسجيل / Check-in Time': item.displayTime || item.timestamp
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(excelData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance Roster');
+    XLSX.utils.book_append_sheet(workbook, worksheet, sanitizeSheetName(session.course));
 
-    const fileName = `UNRWA_Attendance_${sessionDate}_${sanitizeFileName(courseName)}.xlsx`;
+    const fileName = `UNRWA_${session.date}_${sanitizeFileName(session.course)}.xlsx`;
     XLSX.writeFile(workbook, fileName);
 
-    showToast((currentLang === 'ar') ? 'تم تصدير كشف الحضور بنجاح!' : 'Attendance exported to Excel successfully!', 'success');
+    showToast((currentLang === 'ar') ? `تم تصدير ملف إكسل الخاص بدورة [${session.course}] بنجاح!` : `Excel downloaded for [${session.course}] successfully!`, 'success');
   }
 
-  // 11. Event Listeners Setup
+  // 12. Global Interface for Inline Actions
+  window.AttendTrackAdmin = {
+    toggleFolder: function (sessionId) {
+      const s = allSessions.find(item => item.sessionId === sessionId);
+      if (s) {
+        s.isExpanded = !s.isExpanded;
+        const el = document.getElementById('folder_' + sessionId);
+        if (el) {
+          el.classList.toggle('expanded', s.isExpanded);
+        }
+      }
+    },
+
+    activateSessionQr: function (sessionId) {
+      const s = allSessions.find(item => item.sessionId === sessionId);
+      if (s) {
+        activateSession(s);
+        showToast((currentLang === 'ar') ? `تم تفعيل الـ QR كود لدورة: ${s.course}` : `Active QR switched to: ${s.course}`, 'info');
+      }
+    },
+
+    exportSessionExcel: function (sessionId) {
+      exportSessionExcel(sessionId);
+    },
+
+    deleteAttendee: function (sessionId, attendeeId) {
+      if (confirm((currentLang === 'ar') ? 'هل أنت متأكد من حذف هذا المتدرب؟' : 'Are you sure you want to delete this attendee?')) {
+        const session = allSessions.find(s => s.sessionId === sessionId);
+        if (session) {
+          session.attendees = (session.attendees || []).filter(a => a.id !== attendeeId);
+          saveLocalSessions();
+
+          if (db) {
+            db.ref('sessions/' + sessionId + '/attendees').once('value').then(snap => {
+              snap.forEach(child => {
+                if (child.val().id === attendeeId) {
+                  child.ref.remove();
+                }
+              });
+            });
+          }
+
+          renderSessionsAccordion();
+          updateGlobalStats();
+          showToast((currentLang === 'ar') ? 'تم حذف المتدرب' : 'Attendee deleted', 'info');
+        }
+      }
+    },
+
+    deleteSession: function (sessionId) {
+      const session = allSessions.find(s => s.sessionId === sessionId);
+      const name = session ? session.course : '';
+      if (confirm((currentLang === 'ar') ? `هل أنت متأكد من حذف دورة [${name}] بالكامل مع جميع سجلات حضورها؟` : `Are you sure you want to delete course [${name}] and all its attendance records?`)) {
+        allSessions = allSessions.filter(s => s.sessionId !== sessionId);
+        saveLocalSessions();
+
+        if (db) {
+          db.ref('sessions/' + sessionId).remove().catch(console.warn);
+        }
+
+        if (currentSession && currentSession.sessionId === sessionId) {
+          currentSession = allSessions.length > 0 ? allSessions[0] : null;
+          if (currentSession) {
+            activateSession(currentSession);
+          } else {
+            localStorage.removeItem('attendtrack_active_session_v1');
+            const placeholder = document.getElementById('qrStandbyPlaceholder');
+            const content = document.getElementById('qrActiveContent');
+            if (placeholder) placeholder.classList.remove('hidden');
+            if (content) content.classList.add('hidden');
+          }
+        }
+
+        renderSessionsAccordion();
+        updateGlobalStats();
+        showToast((currentLang === 'ar') ? 'تم حذف الدورة بنجاح' : 'Course deleted successfully', 'info');
+      }
+    }
+  };
+
+  // 13. Event Listeners Setup
   function initEventListeners() {
     // Session Form Submit
     const btnUpdate = document.getElementById('btnUpdateSession');
@@ -544,45 +810,38 @@
       });
     }
 
-    // Export Excel
-    const btnExport = document.getElementById('btnExportExcel');
-    if (btnExport) {
-      btnExport.addEventListener('click', exportAttendanceToExcel);
-    }
+    // Clear All Sessions Archive
+    const btnClearAll = document.getElementById('btnClearAllSessions');
+    if (btnClearAll) {
+      btnClearAll.addEventListener('click', () => {
+        if (confirm((currentLang === 'ar') ? 'هل أنت متأكد من مسح كامل أرشيف الدورات؟' : 'Are you sure you want to clear the entire courses archive?')) {
+          allSessions = [];
+          currentSession = null;
+          saveLocalSessions();
+          localStorage.removeItem('attendtrack_active_session_v1');
 
-    // Clear Data
-    const btnClear = document.getElementById('btnClearData');
-    if (btnClear) {
-      btnClear.addEventListener('click', () => {
-        if (confirm((currentLang === 'ar') ? 'هل أنت متأكد من رغبتك في مسح قائمة الحضور الحالية؟' : 'Are you sure you want to clear the current attendance roster?')) {
-          attendees = [];
-          saveLocalAttendeesBackup();
-          if (db && currentSession) {
-            db.ref('sessions/' + currentSession.sessionId + '/attendees').remove().catch(console.warn);
+          if (db) {
+            db.ref('sessions').remove().catch(console.warn);
+            db.ref('active_session').remove().catch(console.warn);
           }
-          renderAttendanceTable();
-          updateSummaryStats();
-          showToast((currentLang === 'ar') ? 'تم مسح القائمة' : 'Attendance roster cleared', 'info');
+
+          const placeholder = document.getElementById('qrStandbyPlaceholder');
+          const content = document.getElementById('qrActiveContent');
+          if (placeholder) placeholder.classList.remove('hidden');
+          if (content) content.classList.add('hidden');
+
+          renderSessionsAccordion();
+          updateGlobalStats();
+          showToast((currentLang === 'ar') ? 'تم مسح الأرشيف بالكامل' : 'Archive cleared', 'info');
         }
       });
     }
 
     // Search Box
-    const searchInput = document.getElementById('rosterSearch');
+    const searchInput = document.getElementById('archiveSearch');
     if (searchInput) {
       searchInput.addEventListener('input', function () {
-        const query = this.value.toLowerCase().trim();
-        if (!query) {
-          renderAttendanceTable();
-          return;
-        }
-        const filtered = attendees.filter(a =>
-          a.name.toLowerCase().includes(query) ||
-          a.empNumber.toLowerCase().includes(query) ||
-          a.department.toLowerCase().includes(query) ||
-          a.jobTitle.toLowerCase().includes(query)
-        );
-        renderAttendanceTable(filtered);
+        renderSessionsAccordion(this.value);
       });
     }
 
@@ -721,6 +980,7 @@
       return;
     }
 
+    // Unique session ID per creation
     const sessionId = 'session_' + encodeURIComponent((course + '_' + date).replace(/[^a-zA-Z0-9]/g, '_'));
 
     const sessionObj = {
@@ -733,7 +993,7 @@
     };
 
     activateSession(sessionObj);
-    showToast((currentLang === 'ar') ? 'تم تفعيل الجلسة وتوليد QR كود بنجاح!' : 'Session activated & QR generated successfully!', 'success');
+    showToast((currentLang === 'ar') ? `تم تفعيل دورة [${course}] وإنشاء مجلدها بنجاح!` : `Session [${course}] activated & folder created!`, 'success');
   }
 
   // Toast Function
@@ -764,26 +1024,9 @@
     return str.replace(/[^a-zA-Z0-9-_]/g, '_').substring(0, 30);
   }
 
-  // Delete attendee
-  window.AttendTrackAdmin = {
-    deleteAttendee: function (id) {
-      if (confirm((currentLang === 'ar') ? 'حذف هذا المتدرب؟' : 'Delete this attendee?')) {
-        attendees = attendees.filter(a => a.id !== id);
-        saveLocalAttendeesBackup();
-        if (db && currentSession) {
-          db.ref('sessions/' + currentSession.sessionId + '/attendees').once('value').then(snap => {
-            snap.forEach(child => {
-              if (child.val().id === id) {
-                child.ref.remove();
-              }
-            });
-          });
-        }
-        renderAttendanceTable();
-        updateSummaryStats();
-      }
-    }
-  };
+  function sanitizeSheetName(str) {
+    return str.replace(/[\\/*?:[\]]/g, '_').substring(0, 31);
+  }
 
   // Initialize Page
   document.addEventListener('DOMContentLoaded', () => {
@@ -795,13 +1038,22 @@
 
     initEventListeners();
 
-    // Check if saved session exists
+    // Load saved sessions archive
+    const savedSessions = localStorage.getItem('attendtrack_all_sessions_v2');
+    if (savedSessions) {
+      try {
+        allSessions = JSON.parse(savedSessions);
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
+    // Check if saved active session exists
     const saved = localStorage.getItem('attendtrack_active_session_v1');
     if (saved) {
       try {
         const obj = JSON.parse(saved);
         if (obj && obj.course) {
-          // Pre-populate form inputs
           const courseSel = document.getElementById('courseSelect');
           const trainerInput = document.getElementById('trainerInput');
           const locSel = document.getElementById('locationSelect');
@@ -817,19 +1069,13 @@
       } catch (e) {
         console.warn(e);
       }
+    } else {
+      renderSessionsAccordion();
+      updateGlobalStats();
     }
 
-    // Load saved attendees
-    const savedAttendees = localStorage.getItem('attendtrack_attendees_v1');
-    if (savedAttendees) {
-      try {
-        attendees = JSON.parse(savedAttendees);
-        renderAttendanceTable();
-        updateSummaryStats();
-      } catch (e) {
-        console.warn(e);
-      }
-    }
+    // Start Real-time Firebase Sync
+    initRealtimeFirebaseSync();
   });
 
 })();
