@@ -112,14 +112,39 @@ body {
 .unrwa-logo-box {
   width: 44px;
   height: 44px;
-  background: linear-gradient(135deg, var(--un-blue-primary), var(--un-blue-dark));
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-white);
-  font-size: 1.35rem;
-  box-shadow: 0 4px 10px rgba(0, 114, 188, 0.3);
+  overflow: hidden;
+  box-shadow: 0 3px 10px rgba(0, 114, 188, 0.25);
+  background: #0072bc;
+  flex-shrink: 0;
+}
+
+.unrwa-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.unrwa-logo-img-large {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-lg);
+  object-fit: cover;
+  display: block;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  margin: 0 auto;
+}
+
+.unrwa-logo-flyer {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  display: block;
 }
 
 .brand-text {
@@ -1954,4 +1979,137 @@ body {
 .folder-stat-pill strong {
   color: var(--text-main);
   font-weight: 700;
+}
+
+/* ==========================================================================
+   Mobile Responsiveness & Trainee View Single-Line Text Optimization
+   ========================================================================== */
+@media (max-width: 640px) {
+  .trainee-container {
+    padding: 0 0.25rem;
+    max-width: 100%;
+  }
+
+  .app-header .header-container {
+    padding: 0.5rem 0.85rem;
+  }
+  .unrwa-logo-box {
+    width: 38px;
+    height: 38px;
+  }
+  .brand-title {
+    font-size: 0.95rem;
+    white-space: nowrap;
+  }
+  .brand-subtitle {
+    font-size: 0.7rem;
+    white-space: nowrap;
+  }
+  #cloudStatusBadge, .status-pill {
+    padding: 0.25rem 0.55rem;
+    font-size: 0.72rem;
+    white-space: nowrap;
+  }
+  .lang-toggle-btn {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
+  .session-locked-banner {
+    padding: 1.15rem 0.85rem;
+    border-radius: var(--radius-md);
+    margin-bottom: 1rem;
+  }
+  .session-locked-banner h2 {
+    font-size: 1.15rem;
+    line-height: 1.35;
+    margin-bottom: 0.65rem;
+  }
+  .banner-badge {
+    font-size: 0.72rem;
+    padding: 0.25rem 0.65rem;
+    white-space: nowrap;
+  }
+  .trainee-meta-pills {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.35rem;
+  }
+  .meta-pill {
+    font-size: 0.72rem;
+    padding: 0.28rem 0.6rem;
+    white-space: nowrap;
+  }
+
+  .trainee-form-card {
+    padding: 1.25rem 1rem;
+    border-radius: var(--radius-md);
+  }
+  .trainee-form-card .card-header h3 {
+    font-size: 1.1rem;
+  }
+  .card-hint {
+    font-size: 0.78rem;
+    line-height: 1.4;
+  }
+  .form-group label {
+    font-size: 0.84rem;
+    white-space: nowrap;
+  }
+  .form-input {
+    font-size: 0.92rem;
+    padding: 0.65rem 0.85rem;
+  }
+  .field-help {
+    font-size: 0.72rem;
+  }
+
+  .gender-radio-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+  .gender-option-card {
+    padding: 0.65rem 0.4rem;
+  }
+  .gender-option-card .option-content {
+    font-size: 0.84rem;
+    white-space: nowrap;
+    gap: 0.35rem;
+    justify-content: center;
+  }
+
+  #btnSubmitCheckin {
+    padding: 0.85rem 0.5rem;
+    font-size: 0.92rem;
+    white-space: nowrap;
+  }
+
+  .certificate-preview-widget {
+    padding: 0.85rem 0.65rem;
+  }
+  .cert-preview-badge {
+    font-size: 0.7rem;
+    white-space: nowrap;
+  }
+  .cert-preview-canvas {
+    padding: 1rem 0.5rem;
+  }
+  .cert-preview-sub {
+    font-size: 0.72rem;
+    white-space: nowrap;
+  }
+  .cert-preview-name {
+    font-size: 1.05rem;
+    word-break: break-word;
+  }
+  .cert-preview-desc {
+    font-size: 0.75rem;
+  }
+  .cert-verification-notice {
+    font-size: 0.72rem;
+    white-space: nowrap;
+  }
 }
