@@ -1054,33 +1054,24 @@
       }
     }
 
-    // Check if saved active session exists
-    const saved = localStorage.getItem('attendtrack_active_session_v1');
-    if (saved) {
-      try {
-        const obj = JSON.parse(saved);
-        if (obj && obj.course) {
-          const courseSel = document.getElementById('courseSelect');
-          const trainerInput = document.getElementById('trainerInput');
-          const locSel = document.getElementById('locationSelect');
-          const timeInput = document.getElementById('sessionTime');
-          if (courseSel) courseSel.value = obj.course;
-          if (trainerInput) trainerInput.value = obj.trainer;
-          if (locSel) locSel.value = obj.location;
-          if (dateInput && obj.date) dateInput.value = obj.date;
-          if (timeInput) timeInput.value = obj.time;
+    // Initialize Standby state for top QR section on page load
+    currentSession = null;
+    const placeholder = document.getElementById('qrStandbyPlaceholder');
+    const content = document.getElementById('qrActiveContent');
+    const statusPill = document.getElementById('qrLiveStatus');
+    const statusText = document.getElementById('qrStatusText');
+    if (placeholder) placeholder.classList.remove('hidden');
+    if (content) content.classList.add('hidden');
+    if (statusPill) statusPill.className = 'status-pill';
+    if (statusText) statusText.textContent = (currentLang === 'ar') ? 'في انتظار الإعداد' : 'Awaiting Setup';
 
-          activateSession(obj);
-        }
-      } catch (e) {
-        console.warn(e);
-      }
-    } else {
-      renderSessionsAccordion();
-      updateGlobalStats();
-    }
+    // Clear form inputs so it's clean and ready
+    const sessionForm = document.getElementById('sessionForm');
+    if (sessionForm) sessionForm.reset();
 
-    // Start Real-time Firebase Sync
+    // Render Archive and start Real-time Firebase Sync
+    renderSessionsAccordion();
+    updateGlobalStats();
     initRealtimeFirebaseSync();
   });
 
