@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AttendTrack - Trainee Check-In · UNRWA HR</title>
+  <meta name="description" content="Official electronic attendance registration for UNRWA HR Staff Development & Training.">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Cinzel:wght@600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Core Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Confetti Library -->
+  <script src="lib/confetti.browser.min.js"></script>
+
+  <!-- Firebase App & Realtime Database SDKs (Compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+</head>
+<body class="trainee-standalone-page">
+
+  <!-- Top Global Header (Trainee Version - NO HR BUTTONS) -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-group">
+        <div class="unrwa-logo-box">
+          <i class="fa-solid fa-earth-americas"></i>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">AttendTrack · UNRWA HR</span>
+          <span class="brand-subtitle" id="portalSubTitle">Trainee Attendance Portal · بوابة تسجيل المتدربين</span>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <!-- Live Connection Status Badge -->
+        <span class="status-pill status-connected" id="cloudStatusBadge" title="Connected to UNRWA Cloud">
+          <span class="status-indicator"></span>
+          <span id="cloudStatusText">Online / متصل</span>
+        </span>
+
+        <!-- Language Switcher -->
+        <button id="langToggleBtn" class="lang-toggle-btn" title="Toggle Language / تبديل اللغة">
+          <i class="fa-solid fa-globe"></i>
+          <span id="currentLangLabel">العربية</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Trainee Content Wrapper -->
+  <main class="main-wrapper">
+    <div class="trainee-container">
+
+      <!-- Training Session Verification Banner -->
+      <div class="session-locked-banner" id="sessionHeaderCard">
+        <div class="banner-badge">
+          <i class="fa-solid fa-certificate"></i>
+          <span data-i18n="traineeBannerBadge">UNRWA Official Training Session (جلسة تدريبية رسمية)</span>
+        </div>
+        <h2 id="traineeCourseHeader">Loading Session Details...</h2>
+        <div class="trainee-meta-pills">
+          <span class="meta-pill"><i class="fa-solid fa-location-dot"></i> <span id="traineeLocationHeader">--</span></span>
+          <span class="meta-pill"><i class="fa-solid fa-user-tie"></i> <span id="traineeTrainerHeader">--</span></span>
+          <span class="meta-pill"><i class="fa-solid fa-calendar-check"></i> <span id="traineeDateHeader">--</span></span>
+          <span class="meta-pill"><i class="fa-solid fa-clock"></i> <span id="traineeTimeHeader">--</span></span>
+        </div>
+      </div>
+
+      <!-- Trainee Check-In Form Card -->
+      <div class="grid-card trainee-form-card" id="traineeFormCard">
+        <div class="card-header">
+          <div>
+            <h3 data-i18n="traineeFormTitle">Electronic Attendance Registration</h3>
+            <p class="card-hint" data-i18n="traineeFormHint">Fill out your details accurately. Your name will appear on the certificate exactly as typed below.</p>
+          </div>
+        </div>
+
+        <form id="traineeCheckinForm" class="trainee-form" onsubmit="return false;" novalidate>
+          
+          <!-- 1. Employee Number -->
+          <div class="form-group">
+            <label for="empNumberInput">
+              <i class="fa-solid fa-id-badge"></i>
+              <span data-i18n="lblEmpNumber">Employee Number (رقم الموظف)</span>
+              <span class="req">*</span>
+            </label>
+            <input type="text" id="empNumberInput" class="form-input" placeholder="e.g. 10458291" required pattern="[0-9]{5,10}" maxlength="12">
+            <small class="field-help" data-i18n="helpEmpNumber">Your official UNRWA staff/personnel number (رقمك الوظيفي في الأونروا)</small>
+          </div>
+
+          <!-- 2. Trainee Name (English) & Live Certificate Preview -->
+          <div class="form-group">
+            <label for="traineeNameInput">
+              <i class="fa-solid fa-user"></i>
+              <span data-i18n="lblTraineeName">Trainee Name (اسم المتدرب بالإنجليزية)</span>
+              <span class="req">*</span>
+            </label>
+            <input type="text" id="traineeNameInput" class="form-input" placeholder="e.g. Mohammad Al-Ghanem" required autocomplete="name">
+            
+            <!-- Strict Validation Alert -->
+            <div id="nameValidationWarning" class="validation-warning hidden">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              <span data-i18n="warnEnglishOnly">Please write your name in English letters only. Arabic characters are not accepted for certificate printing. (يرجى كتابة الاسم بالأحرف الإنجليزية فقط لطباعة الشهادة)</span>
+            </div>
+
+            <!-- Live Certificate Preview Widget -->
+            <div class="certificate-preview-widget">
+              <div class="cert-preview-badge">
+                <i class="fa-solid fa-award"></i>
+                <span data-i18n="certPreviewBadge">Live Certificate Name Preview (معاينة حية للاسم على الشهادة)</span>
+              </div>
+              <div class="cert-preview-canvas">
+                <div class="cert-watermark">UNRWA</div>
+                <div class="cert-preview-sub" data-i18n="certCertifiesThat">This is to certify that</div>
+                <div class="cert-preview-name" id="certLiveName">YOUR NAME IN ENGLISH</div>
+                <div class="cert-preview-desc">
+                  <span data-i18n="certCompleted">has completed the training program in</span>
+                  <strong id="certLiveCourse">UNRWA Staff Development Training</strong>
+                </div>
+                <div class="cert-preview-seal">
+                  <i class="fa-solid fa-stamp"></i>
+                  <span>STAFF DEVELOPMENT & TRAINING</span>
+                </div>
+              </div>
+              <div class="cert-verification-notice">
+                <i class="fa-solid fa-circle-check"></i>
+                <span data-i18n="certVerifyPrompt">Verify spelling and capital letters carefully before submitting. (تأكد من صحة الحروف الكبيرة والإملاء)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Gender (Radio Cards: Male / Female) -->
+          <div class="form-group">
+            <label>
+              <i class="fa-solid fa-venus-mars"></i>
+              <span data-i18n="lblGender">Gender (الجنس)</span>
+              <span class="req">*</span>
+            </label>
+            <div class="gender-radio-group">
+              <label class="gender-option-card">
+                <input type="radio" name="traineeGender" value="Male" required>
+                <div class="option-content">
+                  <i class="fa-solid fa-person text-male"></i>
+                  <span data-i18n="optMale">Male (ذكر)</span>
+                </div>
+              </label>
+              <label class="gender-option-card">
+                <input type="radio" name="traineeGender" value="Female" required>
+                <div class="option-content">
+                  <i class="fa-solid fa-person-dress text-female"></i>
+                  <span data-i18n="optFemale">Female (أنثى)</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- 4. Department -->
+          <div class="form-group">
+            <label for="deptSelect">
+              <i class="fa-solid fa-building"></i>
+              <span data-i18n="lblDepartment">Department / Programme (القسم / الدائرة)</span>
+              <span class="req">*</span>
+            </label>
+            <div class="select-with-custom">
+              <select id="deptSelect" class="form-input" required>
+                <option value="" disabled selected data-i18n="optSelectDept">-- Select Department (اختر القسم) --</option>
+                <option value="Education Programme">Education Programme (التعليم)</option>
+                <option value="Health Programme">Health Programme (الصحة)</option>
+                <option value="Relief & Social Services (RSSP)">Relief & Social Services - RSSP (الإغاثة والخدمات)</option>
+                <option value="Human Resources (HR)">Human Resources - HR (الموارد البشرية)</option>
+                <option value="Logistics & Procurement">Logistics & Procurement (اللوجستيات والمشتريات)</option>
+                <option value="Finance Department">Finance Department (المالية)</option>
+                <option value="Safety & Security Division">Safety & Security Division (الأمن والسلامة)</option>
+                <option value="Information & Technology (ITD)">Information & Technology - ITD (تكنولوجيا المعلومات)</option>
+                <option value="Field Infrastructure & Camp Improvement">Infrastructure & Camp Improvement (الهندسة والمخيمات)</option>
+                <option value="Field Operations / Area Administration">Field Operations / Area Admin (العمليات وإدارة المنطقة)</option>
+                <option value="__custom__">+ Other / Enter Custom Department (قسم آخر)...</option>
+              </select>
+              <input type="text" id="deptCustomInput" class="form-input hidden mt-2" placeholder="Enter department name...">
+            </div>
+          </div>
+
+          <!-- 5. Job Title & 6. Grade (2 columns) -->
+          <div class="form-row">
+            <div class="form-group col-half">
+              <label for="jobTitleInput">
+                <i class="fa-solid fa-briefcase"></i>
+                <span data-i18n="lblJobTitle">Title / Job Title (المسمى الوظيفي)</span>
+                <span class="req">*</span>
+              </label>
+              <input type="text" id="jobTitleInput" class="form-input" placeholder="e.g. Administrative Officer, Teacher" required>
+            </div>
+
+            <div class="form-group col-half">
+              <label for="gradeSelect">
+                <i class="fa-solid fa-layer-group"></i>
+                <span data-i18n="lblGrade">Grade (الدرجة الوظيفية)</span>
+                <span class="req">*</span>
+              </label>
+              <select id="gradeSelect" class="form-input" required>
+                <option value="" disabled selected data-i18n="optSelectGrade">-- Select Grade (اختر الدرجة) --</option>
+                <option value="Grade 5">Grade 5</option>
+                <option value="Grade 6">Grade 6</option>
+                <option value="Grade 7">Grade 7</option>
+                <option value="Grade 8">Grade 8</option>
+                <option value="Grade 9">Grade 9</option>
+                <option value="Grade 10">Grade 10</option>
+                <option value="Grade 11">Grade 11</option>
+                <option value="Grade 12">Grade 12</option>
+                <option value="Grade 13">Grade 13</option>
+                <option value="Grade 14">Grade 14</option>
+                <option value="Grade 15">Grade 15</option>
+                <option value="Grade 16">Grade 16</option>
+                <option value="Grade 17">Grade 17</option>
+                <option value="Grade 18+">Grade 18+</option>
+                <option value="Principal Level (PL)">Principal Level (PL)</option>
+                <option value="Daily Paid / Contract">Daily Paid / Contract (عقد / يومي)</option>
+                <option value="Volunteer / Intern">Volunteer / Intern (متطوع / متدرب)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="button" id="btnSubmitCheckin" class="btn btn-primary btn-block btn-lg">
+            <i class="fa-solid fa-check-circle"></i>
+            <span data-i18n="btnConfirmAttendance">Confirm & Submit Attendance (تأكيد الحضور)</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Check-in Success Confirmation Card -->
+      <div id="checkinSuccessCard" class="grid-card success-card hidden">
+        <div class="success-icon-badge">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <h2 data-i18n="successTitle">Attendance Confirmed Successfully!</h2>
+        <p data-i18n="successDesc">Your information has been verified and registered live with UNRWA Staff Development & Training Division.</p>
+
+        <div class="receipt-box">
+          <div class="receipt-row">
+            <span class="receipt-lbl" data-i18n="rcptName">Name:</span>
+            <strong id="rcptNameVal" class="text-unrwa">--</strong>
+          </div>
+          <div class="receipt-row">
+            <span class="receipt-lbl" data-i18n="rcptEmpNo">Employee #:</span>
+            <span id="rcptEmpNoVal">--</span>
+          </div>
+          <div class="receipt-row">
+            <span class="receipt-lbl" data-i18n="rcptGender">Gender:</span>
+            <span id="rcptGenderVal">--</span>
+          </div>
+          <div class="receipt-row">
+            <span class="receipt-lbl" data-i18n="rcptDept">Department:</span>
+            <span id="rcptDeptVal">--</span>
+          </div>
+          <div class="receipt-row">
+            <span class="receipt-lbl" data-i18n="rcptTitle">Title:</span>
+            <span id="rcptTitleVal">--</span>
+          </div>
+          <div class="receipt-row">
+            <span class="receipt-lbl" data-i18n="rcptGrade">Grade:</span>
+            <span id="rcptGradeVal">--</span>
+          </div>
+          <div class="receipt-row">
+            <span class="receipt-lbl" data-i18n="rcptCourse">Course:</span>
+            <span id="rcptCourseVal">--</span>
+          </div>
+          <div class="receipt-row">
+            <span class="receipt-lbl" data-i18n="rcptLocation">Location:</span>
+            <span id="rcptLocationVal">--</span>
+          </div>
+          <div class="receipt-row">
+            <span class="receipt-lbl" data-i18n="rcptTime">Timestamp:</span>
+            <span id="rcptTimeVal">--</span>
+          </div>
+        </div>
+
+        <div class="success-actions">
+          <button id="btnNewCheckin" class="btn btn-secondary">
+            <i class="fa-solid fa-user-plus"></i>
+            <span data-i18n="btnRegisterAnother">Register Another Colleague (تسجيل زميل آخر)</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="app-footer text-center" style="padding: 20px; color: var(--text-muted); font-size: 0.85rem;">
+    <p>United Nations Relief and Works Agency (UNRWA) · Staff Development & Training Division</p>
+  </footer>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Trainee Logic Script -->
+  <script src="checkin.js"></script>
+</body>
+</html>

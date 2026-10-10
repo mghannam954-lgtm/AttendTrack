@@ -1679,3 +1679,34 @@ body {
     flex-direction: column;
   }
 }
+
+/* Role Badge & Cloud Indicators */
+.role-badge-hr {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.85rem;
+  background: rgba(0, 114, 188, 0.12);
+  border: 1px solid rgba(0, 114, 188, 0.3);
+  color: var(--un-blue-primary);
+  border-radius: var(--radius-full);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.status-pill.status-connected {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #065f46;
+}
+.status-pill.status-connected .status-indicator {
+  background: var(--success);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+}
+.status-pill.status-offline {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #991b1b;
+}
+.status-pill.status-offline .status-indicator {
+  background: var(--danger);
+}

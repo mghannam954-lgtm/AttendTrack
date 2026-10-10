@@ -1,79 +1,115 @@
 /**
- * AttendTrack - UNRWA HR Smart Training & Attendance Portal
- * Production-ready Client Application Logic
+ * AttendTrack - HR & Trainer Portal Logic
+ * UNRWA HR Staff Development & Training Division
+ * Real-time Firebase Sync + Dynamic QR Codes + Excel (.xlsx) Export
  */
 
 (function () {
   'use strict';
 
-  // =========================================================================
-  // 1. STATE & STORAGE KEYS
-  // =========================================================================
-  const STORAGE_KEY_SESSION = 'attendtrack_active_session_v1';
-  const STORAGE_KEY_ROSTER = 'attendtrack_roster_v1';
-  const STORAGE_KEY_LANG = 'attendtrack_lang_v1';
-  const BROADCAST_CHANNEL_NAME = 'attendtrack_sync_channel';
+  // 1. Firebase Configuration & Initialization
+  const firebaseConfig = {
+    apiKey: "AIzaSyAMZ9MPm-SRsJJ4yVcjugnbZluFFTrWkYU",
+    authDomain: "unrwa-attend.firebaseapp.com",
+    databaseURL: "https://unrwa-attend-default-rtdb.firebaseio.com",
+    projectId: "unrwa-attend",
+    storageBucket: "unrwa-attend.firebasestorage.app",
+    messagingSenderId: "171058306827",
+    appId: "1:171058306827:web:878d2cfcffc35b19524c0e",
+    measurementId: "G-PWX4CL84BV"
+  };
 
-  // Multi-tab synchronization channel
-  let syncChannel = null;
+  let db = null;
   try {
-    if ('BroadcastChannel' in window) {
-      syncChannel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
+    if (typeof firebase !== 'undefined') {
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      db = firebase.database();
+      console.log('Firebase Realtime Database initialized in Admin Portal.');
+      updateAdminCloudStatus(true);
+    } else {
+      console.warn('Firebase SDK not found; using local mode.');
+      updateAdminCloudStatus(false);
     }
-  } catch (e) {
-    console.warn('BroadcastChannel not supported', e);
+  } catch (err) {
+    console.error('Firebase Admin init error:', err);
+    updateAdminCloudStatus(false);
   }
 
-  // Active Session (starts as null until HR explicitly generates it)
-  const todayISO = new Date().toISOString().split('T')[0];
+  function updateAdminCloudStatus(isOnline) {
+    const badge = document.getElementById('adminCloudStatus');
+    const text = document.getElementById('adminCloudText');
+    if (!badge || !text) return;
+    if (isOnline) {
+      badge.className = 'status-pill status-connected';
+      text.textContent = 'Live Cloud Sync / متصل سحابياً';
+    } else {
+      badge.className = 'status-pill status-offline';
+      text.textContent = 'Local Standby / وضع محلي';
+    }
+  }
+
+  // 2. Application State
   let currentSession = null;
-
-  // Attendees List
-  let attendeesList = [];
-
-  // Active Language ('en' or 'ar')
-  let currentLang = 'en';
-
-  // QR Code Objects
+  let attendees = [];
+  let currentLang = 'en'; // 'en' | 'ar'
   let adminQr = null;
   let projectorQr = null;
   let flyerQr = null;
+  let activeFirebaseListenerRef = null;
+  let isInitialFirebaseLoad = true;
 
-  // =========================================================================
-  // 2. DICTIONARY (TRANSLATIONS EN / AR)
-  // =========================================================================
+  // 3. Audio Chime (Web Audio API - No external mp3 file needed)
+  function playCheckinChime() {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+      osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15); // A5
+      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.36);
+    } catch (e) {
+      // AudioContext muted/unsupported
+    }
+  }
+
+  // 4. Bilingual Translation Dictionary
   const translations = {
     en: {
-      navTrainer: 'HR / Trainer',
-      navTrainee: 'Trainee Check-In',
-      badgeOfficial: 'Official UNRWA Staff Development Portal',
+      portalSubTitle: 'Staff Development & Training Division · لوحة تحكم التدريب',
       adminHeroTitle: 'Smart Attendance & Digital Certificate Suite',
       adminHeroDesc: 'Generate dynamic QR codes for mobile attendance registration with live English name validation and single-click Excel export.',
+      badgeOfficial: 'Official UNRWA Staff Development Portal',
       statRegistered: 'Total Registered',
       statActiveSession: 'Active Session',
       sessionSetupTitle: '1. Session Details (إعداد الجلسة)',
       sessionSetupHint: 'Set details to activate session QR',
       lblCourseName: 'Course / Training Name (اسم الدورة)',
-      optSelectCourse: '-- Select Course (اختر الدورة) --',
       lblTrainerName: 'Trainer Name (اسم المدرب)',
       lblLocation: 'Location / Duty Station (المكان)',
-      optSelectLocation: '-- Select Location (اختر المكان) --',
       lblDate: 'Session Date (التاريخ)',
       lblTime: 'Timing (التوقيت)',
       btnGenerateQR: 'Generate QR & Activate Session',
       qrDisplayTitle: '2. Dynamic Session QR Code',
-      statusLive: 'Active & Ready',
       statusStandby: 'Awaiting Setup',
+      statusActive: 'Session Live & Scanning',
       standbyTitle: 'No Session Generated Yet',
       standbyDesc: 'Please fill in the training details on the left (Course, Trainer, Location, Date, Time) and click "Generate QR & Activate Session" to create your official session QR code.',
       btnProjectorMode: 'Projector Mode',
       btnPrintFlyer: 'Print A4 Poster',
       btnCopyLink: 'Copy Link',
-      btnTestCheckin: 'Test Attendee View',
-      hostLabel: 'QR Destination Link:',
-      btnEditHost: 'Change',
+      btnTestCheckin: 'Test Trainee Page',
+      hostLabel: 'QR Destination Link (رابط مسح الكود للمتدربين):',
+      btnEditHost: 'Change / تغيير',
       rosterTitle: '3. Live Training Attendance Feed',
-      rosterSubtitle: 'Real-time attendee list. Names verified in English for certificate issuance.',
+      rosterSubtitle: 'Real-time attendee list. Instant sync from mobile attendees with zero refresh needed.',
       searchPlaceholder: 'Search by name, number, department...',
       btnExportExcel: 'Export to Excel (.xlsx)',
       statTotalAttendees: 'Total Attendees:',
@@ -89,40 +125,7 @@
       thTimestamp: 'Time',
       thActions: 'Actions',
       emptyStateTitle: 'No Attendees Registered Yet',
-      emptyStateDesc: 'Scan the QR code from any smartphone to record instant attendance.',
-      traineeBannerBadge: 'UNRWA Official Training Session',
-      traineeFormTitle: 'Electronic Attendance Registration',
-      traineeFormHint: 'Fill out your details accurately. Your name will appear on the certificate exactly as typed below.',
-      lblEmpNumber: 'Employee Number (رقم الموظف)',
-      helpEmpNumber: 'Your official UNRWA staff/personnel number',
-      lblTraineeName: 'Trainee Name (اسم المتدرب بالإنجليزية)',
-      warnEnglishOnly: 'Please write your name in English letters only. Arabic characters are not accepted for certificate printing.',
-      certPreviewBadge: 'Live Certificate Name Preview (معاينة حية للاسم على الشهادة)',
-      certCertifiesThat: 'This is to certify that',
-      certCompleted: 'has completed the training program in',
-      certVerifyPrompt: 'Verify spelling and capital letters carefully before submitting.',
-      lblGender: 'Gender (الجنس)',
-      optMale: 'Male (ذكر)',
-      optFemale: 'Female (أنثى)',
-      lblDepartment: 'Department / Programme (القسم / الدائرة)',
-      optSelectDept: '-- Select Department (اختر القسم) --',
-      lblJobTitle: 'Title / Job Title (المسمى الوظيفي)',
-      lblGrade: 'Grade (الدرجة الوظيفية)',
-      optSelectGrade: '-- Select Grade (اختر الدرجة) --',
-      btnConfirmAttendance: 'Confirm & Submit Attendance (تأكيد الحضور)',
-      successTitle: 'Attendance Confirmed Successfully!',
-      successDesc: 'Your information has been verified and registered with UNRWA Staff Development & Training Division.',
-      rcptName: 'Name:',
-      rcptEmpNo: 'Employee #:',
-      rcptGender: 'Gender:',
-      rcptDept: 'Department:',
-      rcptTitle: 'Title:',
-      rcptGrade: 'Grade:',
-      rcptCourse: 'Course:',
-      rcptLocation: 'Location:',
-      rcptTime: 'Timestamp:',
-      btnRegisterAnother: 'Register Another Attendee',
-      btnBackToDashboard: 'Back to HR Dashboard',
+      emptyStateDesc: 'Trainees scanning the QR code from their mobile phones will appear here instantly in real-time.',
       projInstructionTitle: 'Scan QR with your phone camera to register attendance',
       projInstructionDesc: 'Ensure your name is typed accurately in English for your official completion certificate.',
       projLiveCount: 'Attendees Registered:',
@@ -130,376 +133,100 @@
       btnClose: 'Close (إغلاق)'
     },
     ar: {
-      navTrainer: 'لوحة المدرب والـ HR',
-      navTrainee: 'تسجيل المتدرب',
-      badgeOfficial: 'البوابة الرسمية لتطوير الموظفين - الأونروا',
-      adminHeroTitle: 'نظام الحضور الذكي وإعداد الشهادات الرقمية',
-      adminHeroDesc: 'توليد رموز QR ديناميكية لتسجيل الحضور عبر الموبايل مع تدقيق فوري للأسماء بالإنجليزية وتصدير ملفات الإكسل بنقرة واحدة.',
-      statRegistered: 'إجمالي المسجلين',
+      portalSubTitle: 'قسم تطوير الموظفين والتدريب - الأونروا',
+      adminHeroTitle: 'منظومة تسجيل الحضور الذكية وإعداد الشهادات الرقمية',
+      adminHeroDesc: 'توليد رموز QR ذكية لتسجيل الحضور عبر الموبايل مع تدقيق فوري للأسماء بالإنكليزية وتصدير كشف إكسل رسمي بنقرة واحدة.',
+      badgeOfficial: 'بوابة التدريب الرسمية - قسم الموارد البشرية بالأونروا',
+      statRegistered: 'إجمالي الحاضرين',
       statActiveSession: 'الجلسة النشطة',
       sessionSetupTitle: '1. بيانات الجلسة التدريبية',
-      sessionSetupHint: 'حدد البيانات لتنشيط رمز الـ QR',
-      lblCourseName: 'اسم الدورة التدريبية',
-      optSelectCourse: '-- اختر الدورة التدريبية --',
+      sessionSetupHint: 'حدد البيانات لتوليد الـ QR كود وتفعيل الجلسة',
+      lblCourseName: 'اسم الدورة / التدريب',
       lblTrainerName: 'اسم المدرب',
-      lblLocation: 'المكان / المركز الميداني',
-      optSelectLocation: '-- اختر مكان التدريب --',
+      lblLocation: 'المكان / المركز التدريبي',
       lblDate: 'تاريخ الجلسة',
       lblTime: 'التوقيت',
-      btnGenerateQR: 'توليد كود الـ QR وتنشيط الجلسة',
-      qrDisplayTitle: '2. رمز الـ QR المباشر للحضور',
-      statusLive: 'نشط وجاهز',
+      btnGenerateQR: 'تفعيل الجلسة وتوليد QR كود',
+      qrDisplayTitle: '2. الـ QR كود الذكي للجلسة',
       statusStandby: 'في انتظار الإعداد',
-      standbyTitle: 'لم يتم توليد أي جلسة تدريبية بعد',
-      standbyDesc: 'يرجى اختيار الدورة التدريبية، اسم المدرب، المكان، التاريخ، والتوقيت على اليمين ثم الضغط على "توليد كود الـ QR وتنشيط الجلسة" لتوليد رمز الـ QR الرسمي الخاص بك.',
-      btnProjectorMode: 'شاشة العرض (البروجيكتور)',
-      btnPrintFlyer: 'طباعة بوستر A4 للطاولة',
-      btnCopyLink: 'نسخ الرابط المباشر',
-      btnTestCheckin: 'معاينة شاشة المتدرب',
-      hostLabel: 'رابط مسح الكود:',
-      btnEditHost: 'تغيير',
-      rosterTitle: '3. سجل الحضور المباشر للجلسة',
-      rosterSubtitle: 'قائمة الحضور اللحظية، والأسماء مدققة بالإنجليزية تمهيداً لطباعة الشهادات الرسمية.',
-      searchPlaceholder: 'بحث بالاسم، رقم الموظف، القسم...',
-      btnExportExcel: 'تصدير إلى إكسل (.xlsx)',
+      statusActive: 'الجلسة نشطة ومستعدة للمسح',
+      standbyTitle: 'لم يتم إنشاء أي جلسة حتى الآن',
+      standbyDesc: 'يرجى تعبئة بيانات التدريب في الطرف الأيسر (اسم الدورة، المدرب، المكان، التاريخ، التوقيت) ثم الضغط على "تفعيل الجلسة وتوليد QR كود".',
+      btnProjectorMode: 'عرض البروجيكتور',
+      btnPrintFlyer: 'طباعة بوستر A4',
+      btnCopyLink: 'نسخ الرابط',
+      btnTestCheckin: 'تجربة صفحة المتدرب',
+      hostLabel: 'رابط مسح الكود للمتدربين:',
+      btnEditHost: 'تعديل',
+      rosterTitle: '3. كشف الحضور المباشر (لحظي)',
+      rosterSubtitle: 'قائمة المتدربين المسجلين مباشرة من هواتفهم دون الحاجة لأي تحديث.',
+      searchPlaceholder: 'بحث بالاسم، الرقم الوظيفي، القسم...',
+      btnExportExcel: 'تصدير كشف إكسل (.xlsx)',
       statTotalAttendees: 'إجمالي الحضور:',
       statGenderRatio: 'الجنس (ذكور / إناث):',
-      statDepts: 'عدد الأقسام:',
+      statDepts: 'الأقسام:',
       statLatestCheckin: 'آخر تسجيل:',
-      thEmpNo: 'رقم الموظف',
-      thTraineeName: 'اسم المتدرب (بالإنجليزية)',
+      thEmpNo: 'الرقم الوظيفي',
+      thTraineeName: 'اسم المتدرب (إنكليزي)',
       thGender: 'الجنس',
       thDepartment: 'القسم / الدائرة',
       thJobTitle: 'المسمى الوظيفي',
-      thGrade: 'الدرجة (Grade)',
-      thTimestamp: 'وقت التسجيل',
+      thGrade: 'الدرجة',
+      thTimestamp: 'الوقت',
       thActions: 'إجراءات',
-      emptyStateTitle: 'لم يسجل أي متدرب بعد',
-      emptyStateDesc: 'امسح رمز الـ QR بكاميرا الهاتف لتسجيل الحضور فورياً.',
-      traineeBannerBadge: 'جلسة تدريبية رسمية - الأونروا',
-      traineeFormTitle: 'تسجيل الحضور الإلكتروني للتدريب',
-      traineeFormHint: 'يرجى ملء البيانات بدقة. سيظهر اسمك على الشهادة تماماً كما هو مكتوب أدناه.',
-      lblEmpNumber: 'رقم الموظف (Employee Number)',
-      helpEmpNumber: 'رقمك الوظيفي الرسمي المعتمد في الأونروا',
-      lblTraineeName: 'اسم المتدرب (باللغة الإنجليزية للشهادة)',
-      warnEnglishOnly: 'يرجى كتابة الاسم بالأحرف الإنجليزية فقط. الحروف العربية غير مقبولة لطباعة الشهادات.',
-      certPreviewBadge: 'معاينة حية للاسم على الشهادة',
-      certCertifiesThat: 'تشهد الأونروا بأن الموظف / الموظفة',
-      certCompleted: 'قد أتم بنجاح البرنامج التدريبي في',
-      certVerifyPrompt: 'يرجى مراجعة التهجئة والحروف الكبيرة والصغيرة بدقة قبل الإرسال.',
-      lblGender: 'الجنس',
-      optMale: 'ذكر (Male)',
-      optFemale: 'أنثى (Female)',
-      lblDepartment: 'القسم / البرنامج (Department)',
-      optSelectDept: '-- اختر القسم أو البرنامج --',
-      lblJobTitle: 'المسمى الوظيفي (Title)',
-      lblGrade: 'الدرجة الوظيفية (Grade)',
-      optSelectGrade: '-- اختر الدرجة الوظيفية --',
-      btnConfirmAttendance: 'تأكيد وإرسال تسجيل الحضور',
-      successTitle: 'تم تأكيد تسجيل حضورك بنجاح!',
-      successDesc: 'تم التحقق من بياناتك وتوثيق حضورك لدى مكتب تطوير وتأهيل الموظفين في الأونروا.',
-      rcptName: 'الاسم:',
-      rcptEmpNo: 'رقم الموظف:',
-      rcptGender: 'الجنس:',
-      rcptDept: 'القسم:',
-      rcptTitle: 'المسمى الوظيفي:',
-      rcptGrade: 'الدرجة:',
-      rcptCourse: 'الدورة:',
-      rcptLocation: 'المكان:',
-      rcptTime: 'وقت التسجيل:',
-      btnRegisterAnother: 'تسجيل متدرب آخر',
-      btnBackToDashboard: 'العودة إلى لوحة الـ HR',
-      projInstructionTitle: 'امسح رمز الـ QR بكاميرا هاتفك لتسجيل الحضور',
-      projInstructionDesc: 'تأكد من كتابة اسمك بدقة باللغة الإنجليزية لتتم طباعته على شهادتك الرسمية.',
-      projLiveCount: 'عدد الحاضرين المسجلين:',
+      emptyStateTitle: 'لا يوجد متدربون مسجلون بعد',
+      emptyStateDesc: 'بمجرد أن يمسح المتدربون الـ QR كود من هواتفهم، ستظهر أسماؤهم هنا فوراً بلحظتها.',
+      projInstructionTitle: 'امسح الـ QR كود بكاميرا الموبايل لتسجيل حضورك',
+      projInstructionDesc: 'يرجى كتابة الاسم بدقة باللغة الإنكليزية لطباعة الشهادة الرسمية.',
+      projLiveCount: 'المسجلون حالياً:',
       btnPrintNow: 'طباعة الآن',
       btnClose: 'إغلاق'
     }
   };
 
-  // =========================================================================
-  // 3. INITIALIZATION
-  // =========================================================================
-  document.addEventListener('DOMContentLoaded', initApp);
-
-  function initApp() {
-    loadSavedData();
-    setupEventListeners();
-    setupUrlParamsHandler();
-    applyLanguage(currentLang);
-    renderSessionDetails();
-    renderQrCodes();
-    renderRosterTable();
-    setupBroadcastReceiver();
-  }
-
-  function loadSavedData() {
-    // Language
-    const savedLang = localStorage.getItem(STORAGE_KEY_LANG);
-    if (savedLang && (savedLang === 'en' || savedLang === 'ar')) {
-      currentLang = savedLang;
-    }
-
-    // Session
-    const savedSession = localStorage.getItem(STORAGE_KEY_SESSION);
-    if (savedSession) {
-      try {
-        currentSession = JSON.parse(savedSession);
-      } catch (e) {
-        console.error('Error parsing session', e);
-      }
-    }
-
-    // Roster
-    const savedRoster = localStorage.getItem(STORAGE_KEY_ROSTER);
-    if (savedRoster) {
-      try {
-        attendeesList = JSON.parse(savedRoster);
-      } catch (e) {
-        console.error('Error parsing roster', e);
-      }
-    }
-
-    // Default Date input
-    const dateInput = document.getElementById('sessionDate');
-    if (dateInput) {
-      dateInput.value = (currentSession && currentSession.date) ? currentSession.date : todayISO;
-    }
-  }
-
-  // =========================================================================
-  // 4. URL PARAMETER HANDLING (For Trainee Direct Check-In via QR)
-  // =========================================================================
-  function setupUrlParamsHandler() {
-    const params = new URLSearchParams(window.location.search);
-
-    // If session params exist in the URL, adopt them for the check-in view
-    if (params.has('course') || params.has('c')) {
-      if (!currentSession) {
-        currentSession = {
-          course: '',
-          location: '',
-          trainer: '',
-          date: todayISO,
-          time: '',
-          sessionId: 'UNRWA-' + Date.now().toString(36).toUpperCase()
-        };
-      }
-      currentSession.course = decodeURIComponent(params.get('course') || params.get('c') || currentSession.course || '');
-      currentSession.location = decodeURIComponent(params.get('location') || params.get('loc') || currentSession.location || '');
-      currentSession.trainer = decodeURIComponent(params.get('trainer') || params.get('tr') || currentSession.trainer || '');
-      currentSession.date = decodeURIComponent(params.get('date') || params.get('d') || currentSession.date || todayISO);
-      currentSession.time = decodeURIComponent(params.get('time') || params.get('t') || currentSession.time || '');
-      if (params.has('sid')) {
-        currentSession.sessionId = params.get('sid');
-      }
-    }
-
-    // Switch to trainee view if requested or if direct scan
-    if (params.get('view') === 'trainee' || params.has('c') || params.has('course')) {
-      switchView('trainee');
-    }
-  }
-
-  // =========================================================================
-  // 5. VIEW SWITCHING & NAVIGATION
-  // =========================================================================
-  function switchView(viewName) {
-    const adminView = document.getElementById('adminView');
-    const traineeView = document.getElementById('traineeView');
-    const viewBtnAdmin = document.getElementById('viewBtnAdmin');
-    const viewBtnTrainee = document.getElementById('viewBtnTrainee');
-
-    if (viewName === 'trainee') {
-      adminView.classList.remove('active');
-      traineeView.classList.add('active');
-      viewBtnAdmin.classList.remove('active');
-      viewBtnTrainee.classList.add('active');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      traineeView.classList.remove('active');
-      adminView.classList.add('active');
-      viewBtnTrainee.classList.remove('active');
-      viewBtnAdmin.classList.add('active');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }
-
-  // =========================================================================
-  // 6. LANGUAGE TOGGLE (EN / AR)
-  // =========================================================================
   function applyLanguage(lang) {
     currentLang = lang;
-    localStorage.setItem(STORAGE_KEY_LANG, lang);
+    document.documentElement.lang = lang;
+    document.documentElement.dir = (lang === 'ar') ? 'rtl' : 'ltr';
 
-    const isRtl = lang === 'ar';
-    document.documentElement.setAttribute('dir', isRtl ? 'rtl' : 'ltr');
-    document.documentElement.setAttribute('lang', lang);
-
-    const label = document.getElementById('currentLangLabel');
-    if (label) {
-      label.textContent = isRtl ? 'English' : 'العربية';
+    const langLabel = document.getElementById('currentLangLabel');
+    if (langLabel) {
+      langLabel.textContent = (lang === 'ar') ? 'English' : 'العربية';
     }
 
-    // Translate all elements with data-i18n
-    const dict = translations[lang] || translations.en;
-    document.querySelectorAll('[data-i18n]').forEach((el) => {
+    const dict = translations[lang];
+    if (!dict) return;
+
+    document.querySelectorAll('[data-i18n]').forEach(el => {
       const key = el.getAttribute('data-i18n');
-      if (dict[key]) {
-        el.textContent = dict[key];
-      }
+      if (dict[key]) el.textContent = dict[key];
     });
 
-    // Translate placeholders
-    document.querySelectorAll('[data-i18n-ph]').forEach((el) => {
+    document.querySelectorAll('[data-i18n-ph]').forEach(el => {
       const key = el.getAttribute('data-i18n-ph');
-      if (dict[key]) {
-        el.setAttribute('placeholder', dict[key]);
-      }
+      if (dict[key]) el.placeholder = dict[key];
     });
   }
 
-  function toggleLanguage() {
-    const newLang = currentLang === 'en' ? 'ar' : 'en';
-    applyLanguage(newLang);
-    showToast(newLang === 'ar' ? 'تم تحويل الواجهة إلى العربية' : 'Switched to English interface', 'info');
-  }
-
-  // =========================================================================
-  // 7. SESSION MANAGEMENT & QR GENERATION
-  // =========================================================================
-  function renderSessionDetails() {
-    const standbyBox = document.getElementById('qrStandbyPlaceholder');
-    const activeBox = document.getElementById('qrActiveContent');
-    const liveStatus = document.getElementById('qrLiveStatus');
-    const statusText = document.getElementById('qrStatusText');
-    const heroActiveSessions = document.getElementById('heroActiveSessions');
-
-    const courseSelect = document.getElementById('courseSelect');
-    const courseCustom = document.getElementById('courseCustomInput');
-    const locationSelect = document.getElementById('locationSelect');
-    const locationCustom = document.getElementById('locationCustomInput');
-    const trainerInput = document.getElementById('trainerInput');
-    const dateInput = document.getElementById('sessionDate');
-    const timeInput = document.getElementById('sessionTime');
-
-    if (!currentSession) {
-      // Inactive / Standby state: wait for HR to configure
-      if (standbyBox) standbyBox.classList.remove('hidden');
-      if (activeBox) activeBox.classList.add('hidden');
-      if (liveStatus) liveStatus.classList.remove('active');
-      if (statusText) statusText.textContent = translations[currentLang]?.statusStandby || 'Awaiting Setup';
-      if (heroActiveSessions) heroActiveSessions.textContent = '0';
-
-      // Keep inputs ready for HR
-      if (dateInput && !dateInput.value) dateInput.value = todayISO;
-      return;
-    }
-
-    // Active state: session exists
-    if (standbyBox) standbyBox.classList.add('hidden');
-    if (activeBox) activeBox.classList.remove('hidden');
-    if (liveStatus) liveStatus.classList.add('active');
-    if (statusText) statusText.textContent = translations[currentLang]?.statusLive || 'Active & Ready';
-    if (heroActiveSessions) heroActiveSessions.textContent = '1';
-
-    // Populate form fields
-    if (trainerInput) trainerInput.value = currentSession.trainer || '';
-    if (dateInput) dateInput.value = currentSession.date || todayISO;
-    if (timeInput) timeInput.value = currentSession.time || '';
-
-    // Course preset check
-    if (courseSelect && currentSession.course) {
-      let matched = false;
-      for (let i = 0; i < courseSelect.options.length; i++) {
-        if (courseSelect.options[i].value === currentSession.course) {
-          courseSelect.selectedIndex = i;
-          matched = true;
-          break;
-        }
-      }
-      if (!matched) {
-        courseSelect.value = '__custom__';
-        courseCustom.classList.remove('hidden');
-        courseCustom.value = currentSession.course;
-      }
-    }
-
-    // Location preset check
-    if (locationSelect && currentSession.location) {
-      let matched = false;
-      for (let i = 0; i < locationSelect.options.length; i++) {
-        if (locationSelect.options[i].value === currentSession.location) {
-          locationSelect.selectedIndex = i;
-          matched = true;
-          break;
-        }
-      }
-      if (!matched) {
-        locationSelect.value = '__custom__';
-        locationCustom.classList.remove('hidden');
-        locationCustom.value = currentSession.location;
-      }
-    }
-
-    // Update display badges across admin, trainee, projector, and flyer
-    updateDisplayBadges();
-  }
-
-  function updateDisplayBadges() {
-    if (!currentSession) return;
-
-    // Admin display box
-    setText('displayCourseTitle', currentSession.course);
-    setText('displayLocation', currentSession.location);
-    setText('displayTrainer', currentSession.trainer);
-    setText('displayDate', currentSession.date);
-    setText('displayTime', currentSession.time);
-
-    // Trainee view banners
-    setText('traineeCourseHeader', currentSession.course);
-    setText('traineeLocationHeader', currentSession.location);
-    setText('traineeTrainerHeader', currentSession.trainer);
-    setText('traineeDateHeader', currentSession.date);
-    setText('traineeTimeHeader', currentSession.time);
-    setText('certLiveCourse', currentSession.course);
-
-    // Projector modal
-    setText('projCourseTitle', currentSession.course);
-    setText('projLocation', currentSession.location);
-    setText('projTrainer', currentSession.trainer);
-    setText('projDate', currentSession.date);
-    setText('projTime', currentSession.time);
-
-    // Flyer modal
-    setText('flyerCourseTitle', currentSession.course);
-    setText('flyerLocation', currentSession.location);
-    setText('flyerTrainer', currentSession.trainer);
-    setText('flyerDate', currentSession.date);
-    setText('flyerTime', currentSession.time);
-  }
-
+  // 5. Host URL Resolution
   function getBaseHostUrl() {
-    // If user configured a custom published URL (like GitHub Pages or local IP)
     const customHost = localStorage.getItem('attendtrack_custom_host_v1');
     if (customHost && customHost.trim() !== '') {
       return customHost.trim().replace(/\/+$/, '');
     }
 
-    // If opened directly from file system (file://)
     if (window.location.protocol === 'file:') {
-      return 'http://192.168.1.122:5173';
+      return 'https://unrwa-training.netlify.app';
     }
 
-    // Default to current web origin + pathname
-    return window.location.origin + window.location.pathname.replace(/\/+$/, '');
+    return window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '').replace(/\/+$/, '');
   }
 
   function generateCheckinUrl() {
     if (!currentSession) return '';
     const base = getBaseHostUrl();
-    const url = new URL(base.startsWith('http') ? base : 'http://' + base);
-    url.searchParams.set('view', 'trainee');
+    const cleanBase = base.startsWith('http') ? base : 'https://' + base;
+    const url = new URL(cleanBase + '/checkin.html');
     url.searchParams.set('c', currentSession.course);
     url.searchParams.set('loc', currentSession.location);
     url.searchParams.set('tr', currentSession.trainer);
@@ -509,828 +236,600 @@
     return url.toString();
   }
 
+  // 6. QR Code Rendering
   function renderQrCodes() {
     if (!currentSession) return;
     const targetUrl = generateCheckinUrl();
     if (!targetUrl) return;
 
     if (typeof QRCode === 'undefined') {
-      console.warn('QRCode library loading, retrying in 250ms...');
       setTimeout(renderQrCodes, 250);
       return;
     }
 
-    // 1. Admin Card Main QR
+    // Update displayed host link
+    const displayHost = document.getElementById('hostCurrentUrlDisplay');
+    if (displayHost) {
+      displayHost.textContent = targetUrl;
+    }
+
+    // 1. Admin Dashboard Main QR
     const qrAdminContainer = document.getElementById('qrcode');
     if (qrAdminContainer) {
-      try {
-        qrAdminContainer.innerHTML = '';
-        adminQr = new QRCode(qrAdminContainer, {
-          text: targetUrl,
-          width: 210,
-          height: 210,
-          colorDark: '#002d62',
-          colorLight: '#ffffff',
-          correctLevel: QRCode.CorrectLevel.M
-        });
-      } catch (err) {
-        console.error('Error rendering Admin QR:', err);
-      }
+      qrAdminContainer.innerHTML = '';
+      adminQr = new QRCode(qrAdminContainer, {
+        text: targetUrl,
+        width: 210,
+        height: 210,
+        colorDark: '#002d62',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
     }
 
-    // Projector and Flyer QRs are rendered on demand when modals open
-  }
-
-  function renderProjectorQr() {
+    // 2. Projector Modal QR
     const qrProjContainer = document.getElementById('projectorQrcode');
-    if (qrProjContainer && currentSession) {
-      try {
-        qrProjContainer.innerHTML = '';
-        projectorQr = new QRCode(qrProjContainer, {
-          text: generateCheckinUrl(),
-          width: 320,
-          height: 320,
-          colorDark: '#001a3a',
-          colorLight: '#ffffff',
-          correctLevel: QRCode.CorrectLevel.H
-        });
-      } catch (err) {
-        console.error('Error rendering Projector QR:', err);
-      }
+    if (qrProjContainer) {
+      qrProjContainer.innerHTML = '';
+      projectorQr = new QRCode(qrProjContainer, {
+        text: targetUrl,
+        width: 320,
+        height: 320,
+        colorDark: '#002d62',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
     }
-  }
 
-  function renderFlyerQr() {
+    // 3. A4 Table Flyer QR
     const qrFlyerContainer = document.getElementById('flyerQrcode');
-    if (qrFlyerContainer && currentSession) {
-      try {
-        qrFlyerContainer.innerHTML = '';
-        flyerQr = new QRCode(qrFlyerContainer, {
-          text: generateCheckinUrl(),
-          width: 210,
-          height: 210,
-          colorDark: '#000000',
-          colorLight: '#ffffff',
-          correctLevel: QRCode.CorrectLevel.H
-        });
-      } catch (err) {
-        console.error('Error rendering Flyer QR:', err);
-      }
+    if (qrFlyerContainer) {
+      qrFlyerContainer.innerHTML = '';
+      flyerQr = new QRCode(qrFlyerContainer, {
+        text: targetUrl,
+        width: 220,
+        height: 220,
+        colorDark: '#002d62',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
     }
   }
 
-  function handleSessionFormSubmit(e) {
-    if (e) {
-      if (typeof e.preventDefault === 'function') e.preventDefault();
-      if (typeof e.stopPropagation === 'function') e.stopPropagation();
+  // 7. Session Activation
+  function activateSession(sessionObj) {
+    currentSession = sessionObj;
+    localStorage.setItem('attendtrack_active_session_v1', JSON.stringify(sessionObj));
+
+    // Update UI elements
+    const placeholder = document.getElementById('qrStandbyPlaceholder');
+    const content = document.getElementById('qrActiveContent');
+    const statusPill = document.getElementById('qrLiveStatus');
+    const statusText = document.getElementById('qrStatusText');
+
+    if (placeholder) placeholder.classList.add('hidden');
+    if (content) content.classList.remove('hidden');
+    if (statusPill) statusPill.className = 'status-pill status-active';
+    if (statusText) statusText.textContent = (currentLang === 'ar') ? 'الجلسة نشطة ومستعدة للمسح' : 'Session Live & Scanning';
+
+    document.getElementById('displayCourseTitle').textContent = sessionObj.course;
+    document.getElementById('displayLocation').textContent = sessionObj.location;
+    document.getElementById('displayTrainer').textContent = sessionObj.trainer;
+    document.getElementById('displayDate').textContent = sessionObj.date;
+    document.getElementById('displayTime').textContent = sessionObj.time;
+
+    // Projector Modal Headers
+    document.getElementById('projCourseTitle').textContent = sessionObj.course;
+    document.getElementById('projLocation').textContent = sessionObj.location;
+    document.getElementById('projTrainer').textContent = sessionObj.trainer;
+    document.getElementById('projDate').textContent = sessionObj.date;
+    document.getElementById('projTime').textContent = sessionObj.time;
+
+    // A4 Flyer Headers
+    document.getElementById('flyerCourseTitle').textContent = sessionObj.course;
+    document.getElementById('flyerLocation').textContent = sessionObj.location;
+    document.getElementById('flyerTrainer').textContent = sessionObj.trainer;
+    document.getElementById('flyerDate').textContent = sessionObj.date;
+    document.getElementById('flyerTime').textContent = sessionObj.time;
+
+    // Render QRs
+    renderQrCodes();
+
+    // Sync Active Session with Firebase
+    if (db) {
+      db.ref('active_session').set(sessionObj).catch(console.warn);
     }
 
+    // Attach Real-time Firebase Listener
+    listenToSessionAttendees(sessionObj.sessionId);
+  }
+
+  // 8. Real-time Firebase Listener
+  function listenToSessionAttendees(sessionId) {
+    if (!db || !sessionId) return;
+
+    if (activeFirebaseListenerRef) {
+      activeFirebaseListenerRef.off();
+    }
+
+    isInitialFirebaseLoad = true;
+    const sessionAttendeesRef = db.ref('sessions/' + sessionId + '/attendees');
+    activeFirebaseListenerRef = sessionAttendeesRef;
+
+    sessionAttendeesRef.on('child_added', (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return;
+
+      const exists = attendees.some(a => a.id === data.id || (a.empNumber === data.empNumber && a.sessionId === data.sessionId));
+      if (!exists) {
+        attendees.unshift(data);
+        saveLocalAttendeesBackup();
+        renderAttendanceTable();
+        updateSummaryStats();
+
+        // If not initial batch load, alert trainer!
+        if (!isInitialFirebaseLoad) {
+          playCheckinChime();
+          showToast(`✨ الحضور الجديد: ${data.name} (${data.department})`, 'success');
+        }
+      }
+    });
+
+    // Mark initial load finished after 1.5 seconds
+    setTimeout(() => {
+      isInitialFirebaseLoad = false;
+    }, 1500);
+  }
+
+  function saveLocalAttendeesBackup() {
     try {
-      const courseSelect = document.getElementById('courseSelect');
-      const courseCustom = document.getElementById('courseCustomInput');
-      const locationSelect = document.getElementById('locationSelect');
-      const locationCustom = document.getElementById('locationCustomInput');
-      const trainerInput = document.getElementById('trainerInput');
-      const dateInput = document.getElementById('sessionDate');
-      const timeInput = document.getElementById('sessionTime');
-
-      // Validation
-      if (!courseSelect || !courseSelect.value) {
-        showToast(currentLang === 'ar' ? 'يرجى اختيار اسم الدورة التدريبية' : 'Please select a course name', 'error');
-        if (courseSelect) courseSelect.focus();
-        return false;
-      }
-
-      let selectedCourse = courseSelect.value;
-      if (selectedCourse === '__custom__') {
-        selectedCourse = courseCustom ? courseCustom.value.trim() : '';
-        if (!selectedCourse) {
-          showToast(currentLang === 'ar' ? 'يرجى كتابة اسم الدورة المخصصة' : 'Please type custom course name', 'error');
-          if (courseCustom) courseCustom.focus();
-          return false;
-        }
-      }
-
-      const trainerName = trainerInput ? trainerInput.value.trim() : '';
-      if (!trainerName) {
-        showToast(currentLang === 'ar' ? 'يرجى إدخال اسم المدرب' : 'Please enter trainer name', 'error');
-        if (trainerInput) trainerInput.focus();
-        return false;
-      }
-
-      if (!locationSelect || !locationSelect.value) {
-        showToast(currentLang === 'ar' ? 'يرجى اختيار مكان التدريب' : 'Please select training location', 'error');
-        if (locationSelect) locationSelect.focus();
-        return false;
-      }
-
-      let selectedLocation = locationSelect.value;
-      if (selectedLocation === '__custom__') {
-        selectedLocation = locationCustom ? locationCustom.value.trim() : '';
-        if (!selectedLocation) {
-          showToast(currentLang === 'ar' ? 'يرجى كتابة اسم المكان المخصص' : 'Please type custom venue', 'error');
-          if (locationCustom) locationCustom.focus();
-          return false;
-        }
-      }
-
-      const sessionDate = dateInput ? dateInput.value : '';
-      if (!sessionDate) {
-        showToast(currentLang === 'ar' ? 'يرجى تحديد تاريخ الجلسة' : 'Please select session date', 'error');
-        if (dateInput) dateInput.focus();
-        return false;
-      }
-
-      const sessionTime = timeInput ? timeInput.value.trim() : '';
-      if (!sessionTime) {
-        showToast(currentLang === 'ar' ? 'يرجى تحديد توقيت الجلسة' : 'Please enter session timing', 'error');
-        if (timeInput) timeInput.focus();
-        return false;
-      }
-
-      // Set new active session with HR exact inputs
-      currentSession = {
-        course: selectedCourse,
-        trainer: trainerName,
-        location: selectedLocation,
-        date: sessionDate,
-        time: sessionTime,
-        sessionId: 'UNRWA-' + Date.now().toString(36).toUpperCase()
-      };
-
-      localStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(currentSession));
-      renderSessionDetails();
-      renderQrCodes();
-
-      // Pulse animation on QR container
-      const qrContainer = document.getElementById('qrCodeContainer');
-      if (qrContainer) {
-        qrContainer.style.transform = 'scale(1.05)';
-        setTimeout(() => { qrContainer.style.transform = 'scale(1)'; }, 250);
-      }
-
-      showToast(currentLang === 'ar' ? 'تم توليد كود الـ QR وتنشيط الجلسة بنجاح!' : 'Session QR Code generated & activated successfully!', 'success');
-      return false;
-    } catch (err) {
-      console.error('Submission error:', err);
-      showToast('Error: ' + err.message, 'error');
-      return false;
+      localStorage.setItem('attendtrack_attendees_v1', JSON.stringify(attendees));
+    } catch (e) {
+      console.warn(e);
     }
   }
 
-  // =========================================================================
-  // 8. TRAINEE CHECK-IN LOGIC & STRICT VALIDATIONS
-  // =========================================================================
-  function setupTraineeNameLivePreview() {
-    const nameInput = document.getElementById('traineeNameInput');
-    const certLiveName = document.getElementById('certLiveName');
-    const nameWarn = document.getElementById('nameValidationWarning');
-
-    if (!nameInput) return;
-
-    nameInput.addEventListener('input', (e) => {
-      let val = e.target.value;
-
-      // Detect Arabic or non-English characters
-      const arabicPattern = /[\u0600-\u06FF\u0750-\u077F]/;
-      if (arabicPattern.test(val)) {
-        nameWarn.classList.remove('hidden');
-        // Strip Arabic chars to enforce English
-        val = val.replace(/[\u0600-\u06FF\u0750-\u077F]/g, '');
-        e.target.value = val;
-      } else {
-        nameWarn.classList.add('hidden');
-      }
-
-      // Format to Title Case nicely (e.g. "mohammad al-ghanem" -> "Mohammad Al-Ghanem")
-      const formatted = toTitleCase(val);
-
-      if (formatted.trim() === '') {
-        certLiveName.textContent = currentLang === 'ar' ? 'اسمك باللغة الإنجليزية للشهادة' : 'YOUR NAME IN ENGLISH';
-        certLiveName.style.opacity = '0.5';
-      } else {
-        certLiveName.textContent = formatted;
-        certLiveName.style.opacity = '1';
-      }
-    });
-
-    nameInput.addEventListener('blur', (e) => {
-      e.target.value = toTitleCase(e.target.value.trim());
-    });
-  }
-
-  function toTitleCase(str) {
-    if (!str) return '';
-    return str.replace(/\b\w+/g, function (word) {
-      // Keep words like Al-, El- or Roman numerals handled nicely
-      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-    });
-  }
-
-  function handleTraineeFormSubmit(e) {
-    e.preventDefault();
-
-    const empNumberInput = document.getElementById('empNumberInput');
-    const traineeNameInput = document.getElementById('traineeNameInput');
-    const genderChecked = document.querySelector('input[name="traineeGender"]:checked');
-    const deptSelect = document.getElementById('deptSelect');
-    const deptCustomInput = document.getElementById('deptCustomInput');
-    const jobTitleInput = document.getElementById('jobTitleInput');
-    const gradeSelect = document.getElementById('gradeSelect');
-
-    const empNumber = empNumberInput.value.trim();
-    const traineeName = toTitleCase(traineeNameInput.value.trim());
-    const gender = genderChecked ? genderChecked.value : '';
-    let department = deptSelect.value;
-    if (department === '__custom__') {
-      department = deptCustomInput.value.trim() || 'General Department';
-    }
-    const jobTitle = jobTitleInput.value.trim();
-    const grade = gradeSelect.value;
-
-    // Field Verifications
-    if (!empNumber) {
-      showToast(currentLang === 'ar' ? 'يرجى إدخال رقم الموظف' : 'Please enter your Employee Number', 'error');
-      empNumberInput.focus();
-      return;
-    }
-
-    if (!traineeName || traineeName.length < 3) {
-      showToast(currentLang === 'ar' ? 'يرجى كتابة اسمك كاملاً بالإنجليزية' : 'Please enter your full name in English', 'error');
-      traineeNameInput.focus();
-      return;
-    }
-
-    if (!gender) {
-      showToast(currentLang === 'ar' ? 'يرجى اختيار الجنس (ذكر / أنثى)' : 'Please select gender', 'error');
-      return;
-    }
-
-    if (!department) {
-      showToast(currentLang === 'ar' ? 'يرجى اختيار القسم أو البرنامج' : 'Please select your department', 'error');
-      deptSelect.focus();
-      return;
-    }
-
-    if (!jobTitle) {
-      showToast(currentLang === 'ar' ? 'يرجى كتابة المسمى الوظيفي' : 'Please enter your Job Title', 'error');
-      jobTitleInput.focus();
-      return;
-    }
-
-    if (!grade) {
-      showToast(currentLang === 'ar' ? 'يرجى اختيار الدرجة الوظيفية (Grade)' : 'Please select your Grade', 'error');
-      gradeSelect.focus();
-      return;
-    }
-
-    // Check duplicate check-in for same session
-    const isDuplicate = attendeesList.some(
-      (a) => a.empNumber === empNumber && a.sessionId === currentSession.sessionId
-    );
-    if (isDuplicate) {
-      showToast(
-        currentLang === 'ar' 
-          ? 'تنبيه: رقم الموظف هذا مسجل مسبقاً في هذه الجلسة!' 
-          : 'Notice: This Employee Number is already checked into this session!', 
-        'error'
-      );
-    }
-
-    const timestamp = new Date().toLocaleString();
-    const newAttendee = {
-      id: 'ATT-' + Date.now().toString(36),
-      sessionId: currentSession.sessionId,
-      course: currentSession.course,
-      location: currentSession.location,
-      trainer: currentSession.trainer,
-      date: currentSession.date,
-      empNumber: empNumber,
-      traineeName: traineeName,
-      gender: gender,
-      department: department,
-      jobTitle: jobTitle,
-      grade: grade,
-      timestamp: timestamp
-    };
-
-    // Save to roster
-    attendeesList.unshift(newAttendee);
-    localStorage.setItem(STORAGE_KEY_ROSTER, JSON.stringify(attendeesList));
-
-    // Broadcast update to HR tabs
-    broadcastRosterUpdate();
-
-    // Trigger Confetti Celebration!
-    triggerConfetti();
-
-    // Show Confirmation Receipt
-    displaySuccessReceipt(newAttendee);
-    showToast(currentLang === 'ar' ? 'تم تسجيل حضورك بنجاح!' : 'Attendance registered successfully!', 'success');
-  }
-
-  function displaySuccessReceipt(att) {
-    document.getElementById('traineeFormCard').classList.add('hidden');
-    const successCard = document.getElementById('checkinSuccessCard');
-    successCard.classList.remove('hidden');
-
-    setText('rcptNameVal', att.traineeName);
-    setText('rcptEmpNoVal', att.empNumber);
-    setText('rcptGenderVal', att.gender === 'Male' ? 'Male (ذكر)' : 'Female (أنثى)');
-    setText('rcptDeptVal', att.department);
-    setText('rcptTitleVal', att.jobTitle);
-    setText('rcptGradeVal', att.grade);
-    setText('rcptCourseVal', att.course);
-    setText('rcptLocationVal', att.location);
-    setText('rcptTimeVal', att.timestamp);
-
-    window.scrollTo({ top: successCard.offsetTop - 40, behavior: 'smooth' });
-  }
-
-  function resetTraineeFormForNew() {
-    document.getElementById('traineeCheckinForm').reset();
-    document.getElementById('certLiveName').textContent = currentLang === 'ar' ? 'اسمك باللغة الإنجليزية للشهادة' : 'YOUR NAME IN ENGLISH';
-    document.getElementById('checkinSuccessCard').classList.add('hidden');
-    document.getElementById('traineeFormCard').classList.remove('hidden');
-    document.getElementById('deptCustomInput').classList.add('hidden');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  // =========================================================================
-  // 9. LIVE ROSTER RENDERING & REAL-TIME STATS
-  // =========================================================================
-  function renderRosterTable(filteredData = null) {
-    const list = filteredData || attendeesList;
+  // 9. Render Attendance Table
+  function renderAttendanceTable(filteredList = null) {
     const tbody = document.getElementById('attendanceTableBody');
-    const emptyRow = document.getElementById('emptyStateRow');
-
     if (!tbody) return;
 
+    const list = filteredList || attendees;
+
     if (list.length === 0) {
-      tbody.innerHTML = '';
-      if (emptyRow) {
-        tbody.appendChild(emptyRow);
-        emptyRow.classList.remove('hidden');
-      } else {
-        tbody.innerHTML = `
-          <tr class="empty-row">
-            <td colspan="9">
-              <div class="empty-state">
-                <i class="fa-solid fa-clipboard-user"></i>
-                <h4>${currentLang === 'ar' ? 'لم يسجل أي متدرب بعد' : 'No Attendees Registered Yet'}</h4>
-                <p>${currentLang === 'ar' ? 'امسح رمز الـ QR بكاميرا الهاتف لتسجيل الحضور فورياً.' : 'Scan the QR code from any smartphone to record instant attendance.'}</p>
-              </div>
-            </td>
-          </tr>
-        `;
-      }
-      updateRosterStats(list);
+      tbody.innerHTML = `
+        <tr class="empty-row" id="emptyStateRow">
+          <td colspan="9">
+            <div class="empty-state">
+              <i class="fa-solid fa-clipboard-user"></i>
+              <h4 data-i18n="emptyStateTitle">${(currentLang === 'ar') ? 'لا يوجد متدربون مسجلون بعد' : 'No Attendees Registered Yet'}</h4>
+              <p data-i18n="emptyStateDesc">${(currentLang === 'ar') ? 'بمجرد أن يمسح المتدربون الـ QR كود من هواتفهم، ستظهر أسماؤهم هنا فوراً بلحظتها.' : 'Trainees scanning the QR code from their mobile phones will appear here instantly in real-time.'}</p>
+            </div>
+          </td>
+        </tr>
+      `;
       return;
     }
 
-    let rowsHtml = '';
-    list.forEach((item, index) => {
-      const isMale = item.gender === 'Male';
-      const genderClass = isMale ? 'male' : 'female';
-      const genderIcon = isMale ? 'fa-person' : 'fa-person-dress';
-      const genderText = isMale ? (currentLang === 'ar' ? 'ذكر' : 'Male') : (currentLang === 'ar' ? 'أنثى' : 'Female');
+    tbody.innerHTML = list.map((item, index) => {
+      const genderBadge = item.gender === 'Male'
+        ? '<span class="badge badge-male"><i class="fa-solid fa-person"></i> Male</span>'
+        : '<span class="badge badge-female"><i class="fa-solid fa-person-dress"></i> Female</span>';
 
-      rowsHtml += `
-        <tr>
-          <td><span class="text-muted font-bold">${index + 1}</span></td>
-          <td><span class="emp-no-code">${escapeHtml(item.empNumber)}</span></td>
-          <td>
-            <div class="name-cell-wrapper">
-              <span class="trainee-name-bold">${escapeHtml(item.traineeName)}</span>
-              <small class="text-muted">${escapeHtml(item.course || '')}</small>
-            </div>
-          </td>
-          <td>
-            <span class="gender-badge ${genderClass}">
-              <i class="fa-solid ${genderIcon}"></i>
-              ${genderText}
-            </span>
-          </td>
-          <td><span class="dept-pill">${escapeHtml(item.department)}</span></td>
+      return `
+        <tr class="attendee-row" data-id="${item.id}">
+          <td>${index + 1}</td>
+          <td><strong>${escapeHtml(item.empNumber)}</strong></td>
+          <td class="font-bold text-unrwa">${escapeHtml(item.name)}</td>
+          <td>${genderBadge}</td>
+          <td>${escapeHtml(item.department)}</td>
           <td>${escapeHtml(item.jobTitle)}</td>
-          <td><span class="grade-pill">${escapeHtml(item.grade)}</span></td>
-          <td><small class="text-muted">${escapeHtml(item.timestamp)}</small></td>
+          <td><span class="badge badge-grade">${escapeHtml(item.grade)}</span></td>
+          <td><small class="text-muted">${escapeHtml(item.displayTime || '')}</small></td>
           <td>
-            <button class="btn btn-danger-outline btn-sm delete-attendee-btn" data-id="${item.id}" title="Remove record">
-              <i class="fa-solid fa-trash"></i>
+            <button class="btn-icon text-danger" title="Delete" onclick="window.AttendTrackAdmin.deleteAttendee('${item.id}')">
+              <i class="fa-solid fa-trash-can"></i>
             </button>
           </td>
         </tr>
       `;
-    });
-
-    tbody.innerHTML = rowsHtml;
-
-    // Attach delete listeners
-    tbody.querySelectorAll('.delete-attendee-btn').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        const id = e.currentTarget.getAttribute('data-id');
-        deleteAttendee(id);
-      });
-    });
-
-    updateRosterStats(list);
+    }).join('');
   }
 
-  function updateRosterStats(list) {
-    const total = list.length;
-    let maleCount = 0;
-    let femaleCount = 0;
-    const deptsSet = new Set();
+  function updateSummaryStats() {
+    const total = attendees.length;
+    const maleCount = attendees.filter(a => a.gender === 'Male').length;
+    const femaleCount = attendees.filter(a => a.gender === 'Female').length;
+    const uniqueDepts = new Set(attendees.map(a => a.department)).size;
+    const latest = attendees.length > 0 ? attendees[0].displayTime : '--';
 
-    list.forEach((item) => {
-      if (item.gender === 'Male') maleCount++;
-      if (item.gender === 'Female') femaleCount++;
-      if (item.department) deptsSet.add(item.department);
-    });
+    const elTotal = document.getElementById('summaryTotal');
+    const elHeroTotal = document.getElementById('heroTotalAttendees');
+    const elProjCount = document.getElementById('projAttendeeCount');
+    const elGender = document.getElementById('summaryGender');
+    const elDepts = document.getElementById('summaryDepts');
+    const elLatest = document.getElementById('summaryLatest');
 
-    setText('heroTotalAttendees', total);
-    setText('summaryTotal', total);
-    setText('summaryGender', `${maleCount} / ${femaleCount}`);
-    setText('summaryDepts', deptsSet.size);
-    setText('summaryLatest', list.length > 0 ? list[0].timestamp : '--');
-    setText('projAttendeeCount', total);
+    if (elTotal) elTotal.textContent = total;
+    if (elHeroTotal) elHeroTotal.textContent = total;
+    if (elProjCount) elProjCount.textContent = total;
+    if (elGender) elGender.textContent = `${maleCount} / ${femaleCount}`;
+    if (elDepts) elDepts.textContent = uniqueDepts;
+    if (elLatest) elLatest.textContent = latest;
   }
 
-  function deleteAttendee(id) {
-    const confirmMsg = currentLang === 'ar' ? 'هل أنت متأكد من حذف هذا السجل؟' : 'Are you sure you want to delete this attendee record?';
-    if (!confirm(confirmMsg)) return;
-
-    attendeesList = attendeesList.filter((a) => a.id !== id);
-    localStorage.setItem(STORAGE_KEY_ROSTER, JSON.stringify(attendeesList));
-    renderRosterTable();
-    broadcastRosterUpdate();
-    showToast(currentLang === 'ar' ? 'تم حذف السجل' : 'Record removed', 'info');
-  }
-
-  function clearAllAttendees() {
-    if (attendeesList.length === 0) return;
-    const confirmMsg = currentLang === 'ar' ? 'تحذير: هل أنت متأكد من مسح كافة سجلات الحضور؟' : 'Warning: Are you sure you want to clear all attendance records?';
-    if (!confirm(confirmMsg)) return;
-
-    attendeesList = [];
-    localStorage.setItem(STORAGE_KEY_ROSTER, JSON.stringify(attendeesList));
-    renderRosterTable();
-    broadcastRosterUpdate();
-    showToast(currentLang === 'ar' ? 'تم تفريغ قائمة الحضور' : 'Attendance roster cleared', 'info');
-  }
-
-  function handleRosterSearch(e) {
-    const q = e.target.value.toLowerCase().trim();
-    if (!q) {
-      renderRosterTable();
+  // 10. Excel (.xlsx) Export
+  function exportAttendanceToExcel() {
+    if (attendees.length === 0) {
+      showToast((currentLang === 'ar') ? 'لا يوجد متدربون مسجلون لتصديرهم!' : 'No attendees registered to export!', 'error');
       return;
     }
 
-    const filtered = attendeesList.filter((item) => {
-      return (
-        (item.traineeName && item.traineeName.toLowerCase().includes(q)) ||
-        (item.empNumber && item.empNumber.toLowerCase().includes(q)) ||
-        (item.department && item.department.toLowerCase().includes(q)) ||
-        (item.jobTitle && item.jobTitle.toLowerCase().includes(q)) ||
-        (item.grade && item.grade.toLowerCase().includes(q))
-      );
-    });
-
-    renderRosterTable(filtered);
-  }
-
-  // =========================================================================
-  // 10. EXCEL EXPORT (.XLSX) VIA SHEETJS
-  // =========================================================================
-  function exportRosterToExcel() {
-    if (attendeesList.length === 0) {
-      showToast(currentLang === 'ar' ? 'لا يوجد متدربون مسجلون لتصديرهم إلى إكسل' : 'No registered attendees to export yet.', 'warning');
+    if (typeof XLSX === 'undefined') {
+      showToast('SheetJS Excel library not loaded', 'error');
       return;
     }
 
-    try {
-      // Structure clean tabular data for HR
-      const exportData = attendeesList.map((item, index) => ({
-        '#': index + 1,
-        'Employee Number': item.empNumber,
-        'Trainee Name (English)': item.traineeName,
-        'Gender': item.gender,
-        'Department': item.department,
-        'Job Title': item.jobTitle,
-        'Grade': item.grade,
-        'Course Name': item.course || currentSession.course,
-        'Location / Venue': item.location || currentSession.location,
-        'Trainer': item.trainer || currentSession.trainer,
-        'Session Date': item.date || currentSession.date,
-        'Check-In Timestamp': item.timestamp
-      }));
+    const courseName = currentSession ? currentSession.course : 'UNRWA Training';
+    const sessionLoc = currentSession ? currentSession.location : 'Damascus';
+    const sessionDate = currentSession ? currentSession.date : new Date().toISOString().split('T')[0];
+    const trainerName = currentSession ? currentSession.trainer : 'Trainer';
 
-      // Create Worksheet & Workbook
-      const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const excelData = attendees.map((item, idx) => ({
+      '#': idx + 1,
+      'الرقم الوظيفي / Emp No': item.empNumber,
+      'اسم المتدرب (إنكليزي) / Trainee Name': item.name,
+      'الجنس / Gender': item.gender,
+      'القسم أو الدائرة / Department': item.department,
+      'المسمى الوظيفي / Job Title': item.jobTitle,
+      'الدرجة / Grade': item.grade,
+      'الدورة / Course': item.course || courseName,
+      'المكان / Location': item.location || sessionLoc,
+      'المدرب / Trainer': item.trainer || trainerName,
+      'التاريخ / Date': item.date || sessionDate,
+      'وقت التسجيل / Check-in Time': item.displayTime || item.timestamp
+    }));
 
-      // Auto-fit column widths
-      const colWidths = [
-        { wch: 5 },   // #
-        { wch: 18 },  // Employee Number
-        { wch: 28 },  // Trainee Name
-        { wch: 10 },  // Gender
-        { wch: 28 },  // Department
-        { wch: 22 },  // Job Title
-        { wch: 14 },  // Grade
-        { wch: 32 },  // Course Name
-        { wch: 28 },  // Location
-        { wch: 24 },  // Trainer
-        { wch: 14 },  // Session Date
-        { wch: 22 }   // Timestamp
-      ];
-      worksheet['!cols'] = colWidths;
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance Roster');
 
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance Roster');
+    const fileName = `UNRWA_Attendance_${sessionDate}_${sanitizeFileName(courseName)}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
 
-      // Clean file naming
-      const safeCourse = (currentSession.course || 'Training').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
-      const fileName = `UNRWA_Attendance_${safeCourse}_${currentSession.date}.xlsx`;
-
-      XLSX.writeFile(workbook, fileName);
-      showToast(currentLang === 'ar' ? 'تم تحميل ملف الإكسل بنجاح!' : 'Excel file exported successfully!', 'success');
-    } catch (err) {
-      console.error('Export error', err);
-      showToast(currentLang === 'ar' ? 'حدث خطأ أثناء تصدير ملف الإكسل' : 'Error exporting Excel file', 'error');
-    }
+    showToast((currentLang === 'ar') ? 'تم تصدير كشف الحضور بنجاح!' : 'Attendance exported to Excel successfully!', 'success');
   }
 
-  // =========================================================================
-  // 11. MULTI-TAB REAL-TIME SYNCHRONIZATION
-  // =========================================================================
-  function setupBroadcastReceiver() {
-    if (syncChannel) {
-      syncChannel.onmessage = (event) => {
-        if (event.data && event.data.type === 'ROSTER_UPDATED') {
-          const savedRoster = localStorage.getItem(STORAGE_KEY_ROSTER);
-          if (savedRoster) {
-            attendeesList = JSON.parse(savedRoster);
-            renderRosterTable();
-          }
+  // 11. Event Listeners Setup
+  function initEventListeners() {
+    // Session Form Submit
+    const btnUpdate = document.getElementById('btnUpdateSession');
+    if (btnUpdate) {
+      btnUpdate.addEventListener('click', handleSessionConfigSubmit);
+    }
+
+    // Custom Course Select
+    const courseSel = document.getElementById('courseSelect');
+    const courseCustom = document.getElementById('courseCustomInput');
+    if (courseSel && courseCustom) {
+      courseSel.addEventListener('change', function () {
+        if (this.value === '__custom__') {
+          courseCustom.classList.remove('hidden');
+          courseCustom.focus();
+        } else {
+          courseCustom.classList.add('hidden');
         }
-      };
-    }
-
-    // Also fallback to storage event
-    window.addEventListener('storage', (e) => {
-      if (e.key === STORAGE_KEY_ROSTER && e.newValue) {
-        attendeesList = JSON.parse(e.newValue);
-        renderRosterTable();
-      }
-    });
-  }
-
-  function broadcastRosterUpdate() {
-    if (syncChannel) {
-      syncChannel.postMessage({ type: 'ROSTER_UPDATED', timestamp: Date.now() });
-    }
-  }
-
-  // =========================================================================
-  // 12. PROJECTOR & FLYER MODAL CONTROLS
-  // =========================================================================
-  function openProjectorModal() {
-    if (!currentSession) {
-      showToast(currentLang === 'ar' ? 'يرجى إعداد الجلسة وتوليد كود الـ QR أولاً' : 'Please generate a session QR code first!', 'warning');
-      return;
-    }
-    const modal = document.getElementById('projectorModal');
-    modal.classList.remove('hidden');
-    renderProjectorQr();
-  }
-
-  function closeProjectorModal() {
-    document.getElementById('projectorModal').classList.add('hidden');
-  }
-
-  function openPrintFlyerModal() {
-    if (!currentSession) {
-      showToast(currentLang === 'ar' ? 'يرجى إعداد الجلسة وتوليد كود الـ QR أولاً' : 'Please generate a session QR code first!', 'warning');
-      return;
-    }
-    const modal = document.getElementById('printFlyerModal');
-    modal.classList.remove('hidden');
-    renderFlyerQr();
-  }
-
-  function closePrintFlyerModal() {
-    document.getElementById('printFlyerModal').classList.add('hidden');
-  }
-
-  function executePrint() {
-    window.print();
-  }
-
-  function copyCheckinLink() {
-    if (!currentSession) {
-      showToast(currentLang === 'ar' ? 'يرجى إعداد الجلسة وتوليد كود الـ QR أولاً' : 'Please generate a session QR code first!', 'warning');
-      return;
-    }
-    const url = generateCheckinUrl();
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(url).then(() => {
-        showToast(currentLang === 'ar' ? 'تم نسخ رابط التسجيل إلى الحافظة' : 'Check-in link copied to clipboard!', 'success');
-      }).catch(() => {
-        prompt(currentLang === 'ar' ? 'انسخ الرابط:' : 'Copy link:', url);
-      });
-    } else {
-      prompt(currentLang === 'ar' ? 'انسخ الرابط:' : 'Copy link:', url);
-    }
-  }
-
-  // =========================================================================
-  // 13. UI CELEBRATIONS & TOASTS
-  // =========================================================================
-  function triggerConfetti() {
-    if (typeof confetti === 'function') {
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#0072bc', '#00a3e0', '#10b981', '#f59e0b', '#002d62']
       });
     }
-  }
 
-  function showToast(message, type = 'info') {
-    const container = document.getElementById('toastContainer');
-    if (!container) return;
-
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    
-    let iconClass = 'fa-circle-info';
-    if (type === 'success') iconClass = 'fa-circle-check';
-    if (type === 'error') iconClass = 'fa-triangle-exclamation';
-
-    toast.innerHTML = `<i class="fa-solid ${iconClass}"></i><span>${escapeHtml(message)}</span>`;
-    container.appendChild(toast);
-
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateY(10px)';
-      toast.style.transition = 'all 0.3s ease';
-      setTimeout(() => toast.remove(), 300);
-    }, 3500);
-  }
-
-  // =========================================================================
-  // 14. EVENT LISTENERS
-  // =========================================================================
-  function setupEventListeners() {
-    // View Switchers
-    document.getElementById('viewBtnAdmin').addEventListener('click', () => switchView('admin'));
-    document.getElementById('viewBtnTrainee').addEventListener('click', () => switchView('trainee'));
-    document.getElementById('btnTestMobileView').addEventListener('click', () => switchView('trainee'));
-    document.getElementById('btnReturnToAdmin').addEventListener('click', () => switchView('admin'));
+    // Custom Location Select
+    const locSel = document.getElementById('locationSelect');
+    const locCustom = document.getElementById('locationCustomInput');
+    if (locSel && locCustom) {
+      locSel.addEventListener('change', function () {
+        if (this.value === '__custom__') {
+          locCustom.classList.remove('hidden');
+          locCustom.focus();
+        } else {
+          locCustom.classList.add('hidden');
+        }
+      });
+    }
 
     // Language Toggle
-    document.getElementById('langToggleBtn').addEventListener('click', toggleLanguage);
-
-    // Session Form & Button
-    const sessionForm = document.getElementById('sessionForm');
-    if (sessionForm) sessionForm.addEventListener('submit', handleSessionFormSubmit);
-    const btnUpdateSession = document.getElementById('btnUpdateSession');
-    if (btnUpdateSession) btnUpdateSession.addEventListener('click', handleSessionFormSubmit);
-
-    // Course & Location custom toggles
-    const courseSelect = document.getElementById('courseSelect');
-    const courseCustom = document.getElementById('courseCustomInput');
-    courseSelect.addEventListener('change', () => {
-      if (courseSelect.value === '__custom__') {
-        courseCustom.classList.remove('hidden');
-        courseCustom.focus();
-      } else {
-        courseCustom.classList.add('hidden');
-      }
-    });
-
-    const locationSelect = document.getElementById('locationSelect');
-    const locationCustom = document.getElementById('locationCustomInput');
-    locationSelect.addEventListener('change', () => {
-      if (locationSelect.value === '__custom__') {
-        locationCustom.classList.remove('hidden');
-        locationCustom.focus();
-      } else {
-        locationCustom.classList.add('hidden');
-      }
-    });
-
-    const deptSelect = document.getElementById('deptSelect');
-    const deptCustom = document.getElementById('deptCustomInput');
-    deptSelect.addEventListener('change', () => {
-      if (deptSelect.value === '__custom__') {
-        deptCustom.classList.remove('hidden');
-        deptCustom.focus();
-      } else {
-        deptCustom.classList.add('hidden');
-      }
-    });
-
-    // Trainee Form & Button
-    setupTraineeNameLivePreview();
-    const traineeForm = document.getElementById('traineeCheckinForm');
-    if (traineeForm) traineeForm.addEventListener('submit', handleTraineeFormSubmit);
-    const btnSubmitCheckin = document.getElementById('btnSubmitCheckin');
-    if (btnSubmitCheckin) btnSubmitCheckin.addEventListener('click', handleTraineeFormSubmit);
-    document.getElementById('btnNewCheckin').addEventListener('click', resetTraineeFormForNew);
-
-    // Toolbar Buttons
-    document.getElementById('btnOpenProjector').addEventListener('click', openProjectorModal);
-    document.getElementById('btnCloseProjector').addEventListener('click', closeProjectorModal);
-    document.getElementById('btnPrintFlyer').addEventListener('click', openPrintFlyerModal);
-    document.getElementById('btnClosePrintFlyer').addEventListener('click', closePrintFlyerModal);
-    document.getElementById('btnExecutePrint').addEventListener('click', executePrint);
-    document.getElementById('btnCopyCheckinLink').addEventListener('click', copyCheckinLink);
-
-    // Roster Actions
-    document.getElementById('rosterSearch').addEventListener('input', handleRosterSearch);
-    document.getElementById('btnExportExcel').addEventListener('click', exportRosterToExcel);
-    document.getElementById('btnClearData').addEventListener('click', clearAllAttendees);
-
-    // Host URL Configuration Listeners
-    setupHostUrlControls();
-
-    // ESC to close modals
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        closeProjectorModal();
-        closePrintFlyerModal();
-      }
-    });
-  }
-
-  function setupHostUrlControls() {
-    const displayEl = document.getElementById('hostCurrentUrlDisplay');
-    const editForm = document.getElementById('hostEditForm');
-    const inputEl = document.getElementById('customHostInput');
-    const toggleBtn = document.getElementById('btnToggleHostEdit');
-    const saveBtn = document.getElementById('btnSaveHost');
-    const resetBtn = document.getElementById('btnResetHost');
-
-    function refreshDisplay() {
-      const current = getBaseHostUrl();
-      if (displayEl) displayEl.textContent = current;
-      if (inputEl) inputEl.value = current;
+    const btnLang = document.getElementById('langToggleBtn');
+    if (btnLang) {
+      btnLang.addEventListener('click', () => {
+        applyLanguage(currentLang === 'en' ? 'ar' : 'en');
+      });
     }
 
-    refreshDisplay();
+    // Export Excel
+    const btnExport = document.getElementById('btnExportExcel');
+    if (btnExport) {
+      btnExport.addEventListener('click', exportAttendanceToExcel);
+    }
 
-    if (toggleBtn) {
-      toggleBtn.addEventListener('click', () => {
-        editForm.classList.toggle('hidden');
-        if (!editForm.classList.contains('hidden')) {
-          inputEl.focus();
+    // Clear Data
+    const btnClear = document.getElementById('btnClearData');
+    if (btnClear) {
+      btnClear.addEventListener('click', () => {
+        if (confirm((currentLang === 'ar') ? 'هل أنت متأكد من رغبتك في مسح قائمة الحضور الحالية؟' : 'Are you sure you want to clear the current attendance roster?')) {
+          attendees = [];
+          saveLocalAttendeesBackup();
+          if (db && currentSession) {
+            db.ref('sessions/' + currentSession.sessionId + '/attendees').remove().catch(console.warn);
+          }
+          renderAttendanceTable();
+          updateSummaryStats();
+          showToast((currentLang === 'ar') ? 'تم مسح القائمة' : 'Attendance roster cleared', 'info');
         }
       });
     }
 
-    if (saveBtn) {
-      saveBtn.addEventListener('click', () => {
-        const val = inputEl.value.trim();
+    // Search Box
+    const searchInput = document.getElementById('rosterSearch');
+    if (searchInput) {
+      searchInput.addEventListener('input', function () {
+        const query = this.value.toLowerCase().trim();
+        if (!query) {
+          renderAttendanceTable();
+          return;
+        }
+        const filtered = attendees.filter(a =>
+          a.name.toLowerCase().includes(query) ||
+          a.empNumber.toLowerCase().includes(query) ||
+          a.department.toLowerCase().includes(query) ||
+          a.jobTitle.toLowerCase().includes(query)
+        );
+        renderAttendanceTable(filtered);
+      });
+    }
+
+    // Copy Link Button
+    const btnCopy = document.getElementById('btnCopyCheckinLink');
+    if (btnCopy) {
+      btnCopy.addEventListener('click', () => {
+        const link = generateCheckinUrl();
+        navigator.clipboard.writeText(link).then(() => {
+          showToast((currentLang === 'ar') ? 'تم نسخ رابط تسجيل المتدربين!' : 'Trainee check-in link copied to clipboard!', 'success');
+        }).catch(() => {
+          showToast(link, 'info');
+        });
+      });
+    }
+
+    // Test Attendee View in New Tab
+    const btnTest = document.getElementById('btnTestMobileView');
+    if (btnTest) {
+      btnTest.addEventListener('click', () => {
+        const link = generateCheckinUrl();
+        window.open(link, '_blank');
+      });
+    }
+
+    // Projector Modal
+    const btnProj = document.getElementById('btnOpenProjector');
+    const modalProj = document.getElementById('projectorModal');
+    const btnCloseProj = document.getElementById('btnCloseProjector');
+    if (btnProj && modalProj) {
+      btnProj.addEventListener('click', () => {
+        modalProj.classList.remove('hidden');
+        renderQrCodes();
+      });
+    }
+    if (btnCloseProj && modalProj) {
+      btnCloseProj.addEventListener('click', () => {
+        modalProj.classList.add('hidden');
+      });
+    }
+
+    // Printable Flyer Modal
+    const btnFlyer = document.getElementById('btnPrintFlyer');
+    const modalFlyer = document.getElementById('printFlyerModal');
+    const btnCloseFlyer = document.getElementById('btnClosePrintFlyer');
+    const btnExecPrint = document.getElementById('btnExecutePrint');
+    if (btnFlyer && modalFlyer) {
+      btnFlyer.addEventListener('click', () => {
+        modalFlyer.classList.remove('hidden');
+        renderQrCodes();
+      });
+    }
+    if (btnCloseFlyer && modalFlyer) {
+      btnCloseFlyer.addEventListener('click', () => {
+        modalFlyer.classList.add('hidden');
+      });
+    }
+    if (btnExecPrint) {
+      btnExecPrint.addEventListener('click', () => {
+        window.print();
+      });
+    }
+
+    // Host Edit Form
+    const btnToggleHost = document.getElementById('btnToggleHostEdit');
+    const hostEditForm = document.getElementById('hostEditForm');
+    const customHostInput = document.getElementById('customHostInput');
+    const btnSaveHost = document.getElementById('btnSaveHost');
+    const btnResetHost = document.getElementById('btnResetHost');
+
+    if (btnToggleHost && hostEditForm) {
+      btnToggleHost.addEventListener('click', () => {
+        hostEditForm.classList.toggle('hidden');
+        if (customHostInput) customHostInput.value = getBaseHostUrl();
+      });
+    }
+    if (btnSaveHost && customHostInput) {
+      btnSaveHost.addEventListener('click', () => {
+        const val = customHostInput.value.trim();
         if (val) {
           localStorage.setItem('attendtrack_custom_host_v1', val);
-          refreshDisplay();
+          hostEditForm.classList.add('hidden');
           renderQrCodes();
-          editForm.classList.add('hidden');
-          showToast(currentLang === 'ar' ? 'تم تحديث رابط مسح الكود' : 'QR Destination Link updated!', 'success');
+          showToast((currentLang === 'ar') ? 'تم تحديث الرابط بنجاح!' : 'Published host link updated!', 'success');
         }
       });
     }
-
-    if (resetBtn) {
-      resetBtn.addEventListener('click', () => {
+    if (btnResetHost) {
+      btnResetHost.addEventListener('click', () => {
         localStorage.removeItem('attendtrack_custom_host_v1');
-        refreshDisplay();
+        hostEditForm.classList.add('hidden');
         renderQrCodes();
-        editForm.classList.add('hidden');
-        showToast(currentLang === 'ar' ? 'تمت استعادة الرابط الافتراضي' : 'Reset to default host URL', 'info');
+        showToast((currentLang === 'ar') ? 'تمت استعادة الرابط التلقائي' : 'Reset to auto-detected host', 'info');
       });
     }
   }
 
-  // =========================================================================
-  // HELPER UTILITIES
-  // =========================================================================
-  function setText(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = text || '';
+  function handleSessionConfigSubmit() {
+    const courseSel = document.getElementById('courseSelect');
+    const courseCustom = document.getElementById('courseCustomInput');
+    const trainerInput = document.getElementById('trainerInput');
+    const locSel = document.getElementById('locationSelect');
+    const locCustom = document.getElementById('locationCustomInput');
+    const dateInput = document.getElementById('sessionDate');
+    const timeInput = document.getElementById('sessionTime');
+
+    let course = courseSel ? courseSel.value : '';
+    if (course === '__custom__' && courseCustom) course = courseCustom.value.trim();
+
+    const trainer = trainerInput ? trainerInput.value.trim() : '';
+
+    let location = locSel ? locSel.value : '';
+    if (location === '__custom__' && locCustom) location = locCustom.value.trim();
+
+    const date = dateInput ? dateInput.value : '';
+    const time = timeInput ? timeInput.value.trim() : '';
+
+    if (!course || course === '__custom__') {
+      showToast((currentLang === 'ar') ? 'يرجى اختيار اسم الدورة' : 'Please select Course Name', 'error');
+      return;
+    }
+    if (!trainer) {
+      showToast((currentLang === 'ar') ? 'يرجى كتابة اسم المدرب' : 'Please enter Trainer Name', 'error');
+      return;
+    }
+    if (!location || location === '__custom__') {
+      showToast((currentLang === 'ar') ? 'يرجى تحديد المكان' : 'Please select Location', 'error');
+      return;
+    }
+    if (!date) {
+      showToast((currentLang === 'ar') ? 'يرجى تحديد التاريخ' : 'Please select Date', 'error');
+      return;
+    }
+    if (!time) {
+      showToast((currentLang === 'ar') ? 'يرجى تحديد التوقيت' : 'Please enter Timing', 'error');
+      return;
+    }
+
+    const sessionId = 'session_' + encodeURIComponent((course + '_' + date).replace(/[^a-zA-Z0-9]/g, '_'));
+
+    const sessionObj = {
+      course: course,
+      trainer: trainer,
+      location: location,
+      date: date,
+      time: time,
+      sessionId: sessionId
+    };
+
+    activateSession(sessionObj);
+    showToast((currentLang === 'ar') ? 'تم تفعيل الجلسة وتوليد QR كود بنجاح!' : 'Session activated & QR generated successfully!', 'success');
+  }
+
+  // Toast Function
+  function showToast(msg, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+      <i class="fa-solid ${type === 'success' ? 'fa-circle-check' : type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-info'}"></i>
+      <span>${msg}</span>
+    `;
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.classList.add('fade-out');
+      setTimeout(() => toast.remove(), 400);
+    }, 4500);
   }
 
   function escapeHtml(str) {
     if (!str) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
+    return String(str).replace(/[&<>"']/g, function (m) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m];
+    });
   }
+
+  function sanitizeFileName(str) {
+    return str.replace(/[^a-zA-Z0-9-_]/g, '_').substring(0, 30);
+  }
+
+  // Delete attendee
+  window.AttendTrackAdmin = {
+    deleteAttendee: function (id) {
+      if (confirm((currentLang === 'ar') ? 'حذف هذا المتدرب؟' : 'Delete this attendee?')) {
+        attendees = attendees.filter(a => a.id !== id);
+        saveLocalAttendeesBackup();
+        if (db && currentSession) {
+          db.ref('sessions/' + currentSession.sessionId + '/attendees').once('value').then(snap => {
+            snap.forEach(child => {
+              if (child.val().id === id) {
+                child.ref.remove();
+              }
+            });
+          });
+        }
+        renderAttendanceTable();
+        updateSummaryStats();
+      }
+    }
+  };
+
+  // Initialize Page
+  document.addEventListener('DOMContentLoaded', () => {
+    // Set default date input to today
+    const dateInput = document.getElementById('sessionDate');
+    if (dateInput && !dateInput.value) {
+      dateInput.value = new Date().toISOString().split('T')[0];
+    }
+
+    initEventListeners();
+
+    // Check if saved session exists
+    const saved = localStorage.getItem('attendtrack_active_session_v1');
+    if (saved) {
+      try {
+        const obj = JSON.parse(saved);
+        if (obj && obj.course) {
+          // Pre-populate form inputs
+          const courseSel = document.getElementById('courseSelect');
+          const trainerInput = document.getElementById('trainerInput');
+          const locSel = document.getElementById('locationSelect');
+          const timeInput = document.getElementById('sessionTime');
+          if (courseSel) courseSel.value = obj.course;
+          if (trainerInput) trainerInput.value = obj.trainer;
+          if (locSel) locSel.value = obj.location;
+          if (dateInput && obj.date) dateInput.value = obj.date;
+          if (timeInput) timeInput.value = obj.time;
+
+          activateSession(obj);
+        }
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
+    // Load saved attendees
+    const savedAttendees = localStorage.getItem('attendtrack_attendees_v1');
+    if (savedAttendees) {
+      try {
+        attendees = JSON.parse(savedAttendees);
+        renderAttendanceTable();
+        updateSummaryStats();
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+  });
 
 })();
