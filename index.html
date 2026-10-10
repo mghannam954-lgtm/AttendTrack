@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AttendTrack - UNRWA HR Smart Training & Attendance</title>
+  <meta name="description" content="Electronic attendance registration and certificate preparation portal for UNRWA HR Staff Development & Training.">
+  
+  <!-- Google Fonts: Inter for UI, Cairo for Arabic, Cinzel for Certificate Styling -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Cinzel:wght@600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Core Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Local Offline Libraries (No CDN needed, works 100% offline in Syria) -->
+  <script src="lib/qrcode.min.js"></script>
+  <script src="lib/xlsx.full.min.js"></script>
+  <script src="lib/confetti.browser.min.js"></script>
+</head>
+<body>
+
+  <!-- Top Global Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-group">
+        <div class="unrwa-logo-box">
+          <i class="fa-solid fa-earth-americas"></i>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">AttendTrack · UNRWA HR</span>
+          <span class="brand-subtitle" id="portalSubTitle">Staff Development & Training Division</span>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <!-- Role View Switcher -->
+        <div class="role-switcher">
+          <button id="viewBtnAdmin" class="role-btn active" title="HR & Trainer Dashboard">
+            <i class="fa-solid fa-chalkboard-user"></i>
+            <span class="btn-text" data-i18n="navTrainer">HR / Trainer</span>
+          </button>
+          <button id="viewBtnTrainee" class="role-btn" title="Trainee Mobile Check-in Form">
+            <i class="fa-solid fa-mobile-screen"></i>
+            <span class="btn-text" data-i18n="navTrainee">Trainee Check-In</span>
+          </button>
+        </div>
+
+        <!-- Language Switcher -->
+        <button id="langToggleBtn" class="lang-toggle-btn" title="Toggle Language / تبديل اللغة">
+          <i class="fa-solid fa-globe"></i>
+          <span id="currentLangLabel">العربية</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Application Wrapper -->
+  <main class="main-wrapper">
+
+    <!-- ========================================================================= -->
+    <!-- SECTION 1: HR & TRAINER PORTAL (لوحة تحكم مسؤول التدريب)                 -->
+    <!-- ========================================================================= -->
+    <section id="adminView" class="view-section active">
+      
+      <!-- Welcome Hero Banner -->
+      <div class="hero-banner">
+        <div class="hero-content">
+          <div class="badge-tag">
+            <span class="pulse-dot"></span>
+            <span data-i18n="badgeOfficial">Official UNRWA Staff Development Portal</span>
+          </div>
+          <h1 data-i18n="adminHeroTitle">Smart Attendance & Digital Certificate Suite</h1>
+          <p data-i18n="adminHeroDesc">Generate dynamic QR codes for mobile attendance registration with live English name validation and single-click Excel export.</p>
+        </div>
+        <div class="hero-stats">
+          <div class="stat-card">
+            <span class="stat-num" id="heroTotalAttendees">0</span>
+            <span class="stat-label" data-i18n="statRegistered">Total Registered</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num" id="heroActiveSessions">1</span>
+            <span class="stat-label" data-i18n="statActiveSession">Active Session</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-grid">
+        
+        <!-- Left: Session Configuration Form (HR Input) -->
+        <div class="grid-card session-config-card">
+          <div class="card-header">
+            <div class="header-icon-title">
+              <i class="fa-solid fa-sliders text-unrwa"></i>
+              <h2 data-i18n="sessionSetupTitle">1. Session Details (إعداد الجلسة)</h2>
+            </div>
+            <span class="card-hint" data-i18n="sessionSetupHint">Set details to activate session QR</span>
+          </div>
+
+          <form id="sessionForm" class="session-form" onsubmit="return false;">
+            
+            <!-- 1. Course Name (اسم الدورة) -->
+            <div class="form-group">
+              <label for="courseSelect">
+                <i class="fa-solid fa-graduation-cap"></i>
+                <span data-i18n="lblCourseName">Course / Training Name (اسم الدورة)</span>
+                <span class="req">*</span>
+              </label>
+              <div class="select-with-custom">
+                <select id="courseSelect" class="form-input" required>
+                  <option value="" disabled selected data-i18n="optSelectCourse">-- Select Course (اختر الدورة) --</option>
+                  <option value="Conflict Resolution & Anger Management">Conflict Resolution & Anger Management (حل النزاعات وإدارة الغضب)</option>
+                  <option value="Effective Communication & Team Building">Effective Communication & Team Building (التواصل الفعال وبناء الفريق)</option>
+                  <option value="UN Code of Conduct & Ethics Awareness">UN Code of Conduct & Ethics (مدونة قواعد السلوك والأخلاقيات)</option>
+                  <option value="Supervisory Skills & Modern Leadership">Supervisory Skills & Modern Leadership (المهارات الإشرافية والقيادة)</option>
+                  <option value="Psychosocial Support & Stress Management">Psychosocial Support & Stress Management (الدعم النفسي وإدارة الضغوط)</option>
+                  <option value="Humanitarian Principles & Safety in Field">Humanitarian Principles & Safety in Field (المبادئ الإنسانية والسلامة)</option>
+                  <option value="Cybersecurity & UNRWA Information Protection">Cybersecurity & UNRWA Data Protection (الأمن السيبراني وحماية البيانات)</option>
+                  <option value="e-PAS Performance Management System">e-PAS Performance Management System (نظام إدارة الأداء)</option>
+                  <option value="__custom__">+ Enter Custom Course Name (دورة مخصصة)...</option>
+                </select>
+                <input type="text" id="courseCustomInput" class="form-input hidden mt-2" placeholder="Type custom course title here...">
+              </div>
+            </div>
+
+            <!-- 2. Trainer Name (اسم المدرب) -->
+            <div class="form-group">
+              <label for="trainerInput">
+                <i class="fa-solid fa-user-tie"></i>
+                <span data-i18n="lblTrainerName">Trainer Name (اسم المدرب)</span>
+                <span class="req">*</span>
+              </label>
+              <input type="text" id="trainerInput" class="form-input" placeholder="e.g. Dr. Ahmad Al-Khatib / اسم المدرب" required>
+            </div>
+
+            <!-- 3. Location (المكان) -->
+            <div class="form-group">
+              <label for="locationSelect">
+                <i class="fa-solid fa-location-dot"></i>
+                <span data-i18n="lblLocation">Location / Duty Station (المكان)</span>
+                <span class="req">*</span>
+              </label>
+              <div class="select-with-custom">
+                <select id="locationSelect" class="form-input" required>
+                  <option value="" disabled selected data-i18n="optSelectLocation">-- Select Location (اختر المكان) --</option>
+                  <option value="Damascus - UNRWA Headquarters (HQ)">Damascus - UNRWA Headquarters (HQ) (رئاسة الأونروا - دمشق)</option>
+                  <option value="Damascus - Damascus Training Centre (DTC)">Damascus - Damascus Training Centre (DTC) (معهد دمشق المتوسط)</option>
+                  <option value="Damascus Area Office - Mezzeh">Damascus Area Office (منطقة دمشق - المزة)</option>
+                  <option value="Daraa Area Office">Daraa Area Office (مكتب منطقة درعا)</option>
+                  <option value="Homs Area Office">Homs Area Office (مكتب منطقة حمص)</option>
+                  <option value="Hama Area Office">Hama Area Office (مكتب منطقة حماة)</option>
+                  <option value="Latakia / Tartous Sub-Office">Latakia / Tartous Sub-Office (مكتب اللاذقية وطرطوس)</option>
+                  <option value="__custom__">+ Enter Custom Location (مكان مخصص)...</option>
+                </select>
+                <input type="text" id="locationCustomInput" class="form-input hidden mt-2" placeholder="Type custom venue/room name...">
+              </div>
+            </div>
+
+            <!-- 4. Date & 5. Timing (التاريخ والتوقيت) -->
+            <div class="form-row">
+              <div class="form-group col-half">
+                <label for="sessionDate">
+                  <i class="fa-solid fa-calendar-day"></i>
+                  <span data-i18n="lblDate">Session Date (التاريخ)</span>
+                  <span class="req">*</span>
+                </label>
+                <input type="date" id="sessionDate" class="form-input" required>
+              </div>
+
+              <div class="form-group col-half">
+                <label for="sessionTime">
+                  <i class="fa-solid fa-clock"></i>
+                  <span data-i18n="lblTime">Timing (التوقيت)</span>
+                  <span class="req">*</span>
+                </label>
+                <input type="text" id="sessionTime" class="form-input" placeholder="e.g. 09:00 AM - 02:00 PM" required>
+              </div>
+            </div>
+
+            <!-- Action Button -->
+            <button type="button" id="btnUpdateSession" class="btn btn-primary btn-block">
+              <i class="fa-solid fa-qrcode"></i>
+              <span data-i18n="btnGenerateQR">Generate QR & Activate Session</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Right: Live QR Code Card & Presentation Controls -->
+        <div class="grid-card qr-display-card">
+          <div class="card-header">
+            <div class="header-icon-title">
+              <i class="fa-solid fa-qrcode text-unrwa"></i>
+              <h2 data-i18n="qrDisplayTitle">2. Dynamic Session QR Code</h2>
+            </div>
+            <div class="qr-mode-badges">
+              <span class="status-pill" id="qrLiveStatus">
+                <span class="status-indicator"></span>
+                <span id="qrStatusText" data-i18n="statusStandby">Awaiting Setup</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Standby Placeholder (When no session configured yet) -->
+          <div id="qrStandbyPlaceholder" class="qr-standby-box">
+            <div class="standby-icon">
+              <i class="fa-solid fa-qrcode"></i>
+            </div>
+            <h3 data-i18n="standbyTitle">No Session Generated Yet</h3>
+            <p data-i18n="standbyDesc">Please fill in the training details on the left (Course, Trainer, Location, Date, Time) and click "Generate QR & Activate Session" to create your official session QR code.</p>
+          </div>
+
+          <!-- Active QR Content (Shown only after HR generates the session) -->
+          <div id="qrActiveContent" class="qr-showcase-box hidden">
+            <!-- QR Frame -->
+            <div class="qr-code-wrapper" id="qrCodeContainer">
+              <div id="qrcode"></div>
+            </div>
+
+            <!-- Active Details Summary -->
+            <div class="session-brief-box">
+              <h3 id="displayCourseTitle">--</h3>
+              <div class="brief-meta">
+                <span><i class="fa-solid fa-location-dot"></i> <b id="displayLocation">--</b></span>
+                <span><i class="fa-solid fa-user-tie"></i> <b id="displayTrainer">--</b></span>
+                <span><i class="fa-solid fa-calendar"></i> <b id="displayDate">--</b></span>
+                <span><i class="fa-solid fa-clock"></i> <b id="displayTime">--</b></span>
+              </div>
+            </div>
+
+            <!-- Toolbar Controls -->
+            <div class="qr-actions-toolbar">
+              <button id="btnOpenProjector" class="btn btn-secondary" title="Full Screen for Projector">
+                <i class="fa-solid fa-maximize"></i>
+                <span data-i18n="btnProjectorMode">Projector Mode</span>
+              </button>
+              <button id="btnPrintFlyer" class="btn btn-secondary" title="Print as A4 Poster for Table">
+                <i class="fa-solid fa-print"></i>
+                <span data-i18n="btnPrintFlyer">Print A4 Poster</span>
+              </button>
+              <button id="btnCopyCheckinLink" class="btn btn-outline" title="Copy Check-In Link">
+                <i class="fa-solid fa-link"></i>
+                <span data-i18n="btnCopyLink">Copy Link</span>
+              </button>
+              <button id="btnTestMobileView" class="btn btn-accent" title="Open Trainee View">
+                <i class="fa-solid fa-mobile-screen-button"></i>
+                <span data-i18n="btnTestCheckin">Test Attendee View</span>
+              </button>
+            </div>
+
+            <!-- Smart Network / Host URL Setting -->
+            <div class="host-url-box mt-2">
+              <div class="host-url-header">
+                <i class="fa-solid fa-network-wired text-unrwa"></i>
+                <span class="host-label" data-i18n="hostLabel">QR Destination Link (رابط مسح الكود):</span>
+                <button type="button" id="btnToggleHostEdit" class="btn-text-link" title="Edit Host / GitHub Pages URL">
+                  <i class="fa-solid fa-pen-to-square"></i> <span data-i18n="btnEditHost">Change / تغيير</span>
+                </button>
+              </div>
+              <div class="host-current-url" id="hostCurrentUrlDisplay">http://192.168.1.122:5173</div>
+              <div id="hostEditForm" class="host-edit-row hidden mt-2">
+                <input type="text" id="customHostInput" class="form-input form-input-sm" placeholder="e.g. https://your-name.github.io/AttendTrack or http://192.168.1.122:5173">
+                <button type="button" id="btnSaveHost" class="btn btn-primary btn-sm"><i class="fa-solid fa-check"></i></button>
+                <button type="button" id="btnResetHost" class="btn btn-secondary btn-sm" title="Reset to auto"><i class="fa-solid fa-rotate-left"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Live Attendance Feed / Table Section -->
+      <div class="grid-card attendance-roster-card mt-6">
+        <div class="card-header flex-between flex-wrap gap-4">
+          <div>
+            <div class="header-icon-title">
+              <i class="fa-solid fa-users-viewfinder text-unrwa"></i>
+              <h2 data-i18n="rosterTitle">3. Live Training Attendance Feed</h2>
+            </div>
+            <p class="card-hint" data-i18n="rosterSubtitle">Real-time attendee list. Names verified in English for certificate issuance.</p>
+          </div>
+
+          <div class="roster-actions">
+            <!-- Search Input -->
+            <div class="search-box">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="rosterSearch" placeholder="Search by name, number, department..." data-i18n-ph="searchPlaceholder">
+            </div>
+
+            <!-- Export to Excel Button -->
+            <button id="btnExportExcel" class="btn btn-success">
+              <i class="fa-solid fa-file-excel"></i>
+              <span data-i18n="btnExportExcel">Export to Excel (.xlsx)</span>
+            </button>
+
+            <!-- Clear Data Button -->
+            <button id="btnClearData" class="btn btn-danger-outline" title="Clear attendee list">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Summary Stats Bar -->
+        <div class="roster-summary-bar">
+          <div class="mini-stat">
+            <span class="mini-stat-label" data-i18n="statTotalAttendees">Total Attendees:</span>
+            <span class="mini-stat-val" id="summaryTotal">0</span>
+          </div>
+          <div class="mini-stat">
+            <span class="mini-stat-label" data-i18n="statGenderRatio">Gender (M / F):</span>
+            <span class="mini-stat-val" id="summaryGender">0 / 0</span>
+          </div>
+          <div class="mini-stat">
+            <span class="mini-stat-label" data-i18n="statDepts">Departments:</span>
+            <span class="mini-stat-val" id="summaryDepts">0</span>
+          </div>
+          <div class="mini-stat">
+            <span class="mini-stat-label" data-i18n="statLatestCheckin">Latest Check-in:</span>
+            <span class="mini-stat-val" id="summaryLatest">--</span>
+          </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="table-responsive">
+          <table class="data-table" id="attendanceTable">
+            <thead>
+              <tr>
+                <th width="40">#</th>
+                <th data-i18n="thEmpNo">Employee #</th>
+                <th data-i18n="thTraineeName">Trainee Name (English)</th>
+                <th data-i18n="thGender">Gender</th>
+                <th data-i18n="thDepartment">Department</th>
+                <th data-i18n="thJobTitle">Title</th>
+                <th data-i18n="thGrade">Grade</th>
+                <th data-i18n="thTimestamp">Time</th>
+                <th data-i18n="thActions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="attendanceTableBody">
+              <tr class="empty-row" id="emptyStateRow">
+                <td colspan="9">
+                  <div class="empty-state">
+                    <i class="fa-solid fa-clipboard-user"></i>
+                    <h4 data-i18n="emptyStateTitle">No Attendees Registered Yet</h4>
+                    <p data-i18n="emptyStateDesc">Scan the QR code from any smartphone to record instant attendance.</p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- SECTION 2: TRAINEE CHECK-IN VIEW (واجهة تسجيل حضور الموظف عبر الموبايل)   -->
+    <!-- ========================================================================= -->
+    <section id="traineeView" class="view-section">
+      <div class="trainee-container">
+
+        <!-- Training Session Verification Banner -->
+        <div class="session-locked-banner">
+          <div class="banner-badge">
+            <i class="fa-solid fa-certificate"></i>
+            <span data-i18n="traineeBannerBadge">UNRWA Official Training Session</span>
+          </div>
+          <h2 id="traineeCourseHeader">Conflict Resolution & Anger Management</h2>
+          <div class="trainee-meta-pills">
+            <span class="meta-pill"><i class="fa-solid fa-location-dot"></i> <span id="traineeLocationHeader">Damascus HQ</span></span>
+            <span class="meta-pill"><i class="fa-solid fa-user-tie"></i> <span id="traineeTrainerHeader">Trainer</span></span>
+            <span class="meta-pill"><i class="fa-solid fa-calendar-check"></i> <span id="traineeDateHeader">Today</span></span>
+            <span class="meta-pill"><i class="fa-solid fa-clock"></i> <span id="traineeTimeHeader">09:00 AM</span></span>
+          </div>
+        </div>
+
+        <!-- Trainee Check-In Form Card -->
+        <div class="grid-card trainee-form-card" id="traineeFormCard">
+          <div class="card-header">
+            <div>
+              <h3 data-i18n="traineeFormTitle">Electronic Attendance Registration</h3>
+              <p class="card-hint" data-i18n="traineeFormHint">Fill out your details accurately. Your name will appear on the certificate exactly as typed below.</p>
+            </div>
+          </div>
+
+          <form id="traineeCheckinForm" class="trainee-form" onsubmit="return false;" novalidate>
+            
+            <!-- 1. Employee Number -->
+            <div class="form-group">
+              <label for="empNumberInput">
+                <i class="fa-solid fa-id-badge"></i>
+                <span data-i18n="lblEmpNumber">Employee Number (رقم الموظف)</span>
+                <span class="req">*</span>
+              </label>
+              <input type="text" id="empNumberInput" class="form-input" placeholder="e.g. 10458291" required pattern="[0-9]{5,10}" maxlength="12">
+              <small class="field-help" data-i18n="helpEmpNumber">Your official UNRWA staff/personnel number</small>
+            </div>
+
+            <!-- 2. Trainee Name (English) & Live Certificate Preview -->
+            <div class="form-group">
+              <label for="traineeNameInput">
+                <i class="fa-solid fa-user"></i>
+                <span data-i18n="lblTraineeName">Trainee Name (اسم المتدرب بالإنجليزية)</span>
+                <span class="req">*</span>
+              </label>
+              <input type="text" id="traineeNameInput" class="form-input" placeholder="e.g. Mohammad Al-Ghanem" required autocomplete="name">
+              
+              <!-- Strict Validation Alert -->
+              <div id="nameValidationWarning" class="validation-warning hidden">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span data-i18n="warnEnglishOnly">Please write your name in English letters only. Arabic characters are not accepted for certificate printing.</span>
+              </div>
+
+              <!-- Live Certificate Preview Widget -->
+              <div class="certificate-preview-widget">
+                <div class="cert-preview-badge">
+                  <i class="fa-solid fa-award"></i>
+                  <span data-i18n="certPreviewBadge">Live Certificate Name Preview (معاينة حية للاسم على الشهادة)</span>
+                </div>
+                <div class="cert-preview-canvas">
+                  <div class="cert-watermark">UNRWA</div>
+                  <div class="cert-preview-sub" data-i18n="certCertifiesThat">This is to certify that</div>
+                  <div class="cert-preview-name" id="certLiveName">YOUR NAME IN ENGLISH</div>
+                  <div class="cert-preview-desc">
+                    <span data-i18n="certCompleted">has completed the training program in</span>
+                    <strong id="certLiveCourse">Conflict Resolution & Anger Management</strong>
+                  </div>
+                  <div class="cert-preview-seal">
+                    <i class="fa-solid fa-stamp"></i>
+                    <span>STAFF DEVELOPMENT & TRAINING</span>
+                  </div>
+                </div>
+                <div class="cert-verification-notice">
+                  <i class="fa-solid fa-circle-check"></i>
+                  <span data-i18n="certVerifyPrompt">Verify spelling and capital letters carefully before submitting.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. Gender (Radio Cards: Male / Female) -->
+            <div class="form-group">
+              <label>
+                <i class="fa-solid fa-venus-mars"></i>
+                <span data-i18n="lblGender">Gender (الجنس)</span>
+                <span class="req">*</span>
+              </label>
+              <div class="gender-radio-group">
+                <label class="gender-option-card">
+                  <input type="radio" name="traineeGender" value="Male" required>
+                  <div class="option-content">
+                    <i class="fa-solid fa-person text-male"></i>
+                    <span data-i18n="optMale">Male (ذكر)</span>
+                  </div>
+                </label>
+                <label class="gender-option-card">
+                  <input type="radio" name="traineeGender" value="Female" required>
+                  <div class="option-content">
+                    <i class="fa-solid fa-person-dress text-female"></i>
+                    <span data-i18n="optFemale">Female (أنثى)</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <!-- 4. Department -->
+            <div class="form-group">
+              <label for="deptSelect">
+                <i class="fa-solid fa-building"></i>
+                <span data-i18n="lblDepartment">Department / Programme (القسم / الدائرة)</span>
+                <span class="req">*</span>
+              </label>
+              <div class="select-with-custom">
+                <select id="deptSelect" class="form-input" required>
+                  <option value="" disabled selected data-i18n="optSelectDept">-- Select Department (اختر القسم) --</option>
+                  <option value="Education Programme">Education Programme (التعليم)</option>
+                  <option value="Health Programme">Health Programme (الصحة)</option>
+                  <option value="Relief & Social Services (RSSP)">Relief & Social Services - RSSP (الإغاثة والخدمات)</option>
+                  <option value="Human Resources (HR)">Human Resources - HR (الموارد البشرية)</option>
+                  <option value="Logistics & Procurement">Logistics & Procurement (اللوجستيات والمشتريات)</option>
+                  <option value="Finance Department">Finance Department (المالية)</option>
+                  <option value="Safety & Security Division">Safety & Security Division (الأمن والسلامة)</option>
+                  <option value="Information & Technology (ITD)">Information & Technology - ITD (تكنولوجيا المعلومات)</option>
+                  <option value="Field Infrastructure & Camp Improvement">Infrastructure & Camp Improvement (الهندسة والمخيمات)</option>
+                  <option value="Field Operations / Area Administration">Field Operations / Area Admin (العمليات وإدارة المنطقة)</option>
+                  <option value="__custom__">+ Other / Enter Custom Department (قسم آخر)...</option>
+                </select>
+                <input type="text" id="deptCustomInput" class="form-input hidden mt-2" placeholder="Enter department name...">
+              </div>
+            </div>
+
+            <!-- 5. Job Title & 6. Grade (2 columns) -->
+            <div class="form-row">
+              <div class="form-group col-half">
+                <label for="jobTitleInput">
+                  <i class="fa-solid fa-briefcase"></i>
+                  <span data-i18n="lblJobTitle">Title / Job Title (المسمى الوظيفي)</span>
+                  <span class="req">*</span>
+                </label>
+                <input type="text" id="jobTitleInput" class="form-input" placeholder="e.g. Administrative Officer, Teacher" required>
+              </div>
+
+              <div class="form-group col-half">
+                <label for="gradeSelect">
+                  <i class="fa-solid fa-layer-group"></i>
+                  <span data-i18n="lblGrade">Grade (الدرجة الوظيفية)</span>
+                  <span class="req">*</span>
+                </label>
+                <select id="gradeSelect" class="form-input" required>
+                  <option value="" disabled selected data-i18n="optSelectGrade">-- Select Grade (اختر الدرجة) --</option>
+                  <option value="Grade 5">Grade 5</option>
+                  <option value="Grade 6">Grade 6</option>
+                  <option value="Grade 7">Grade 7</option>
+                  <option value="Grade 8">Grade 8</option>
+                  <option value="Grade 9">Grade 9</option>
+                  <option value="Grade 10">Grade 10</option>
+                  <option value="Grade 11">Grade 11</option>
+                  <option value="Grade 12">Grade 12</option>
+                  <option value="Grade 13">Grade 13</option>
+                  <option value="Grade 14">Grade 14</option>
+                  <option value="Grade 15">Grade 15</option>
+                  <option value="Grade 16">Grade 16</option>
+                  <option value="Grade 17">Grade 17</option>
+                  <option value="Grade 18+">Grade 18+</option>
+                  <option value="Principal Level (PL)">Principal Level (PL)</option>
+                  <option value="Daily Paid / Contract">Daily Paid / Contract (عقد / يومي)</option>
+                  <option value="Volunteer / Intern">Volunteer / Intern (متطوع / متدرب)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="button" id="btnSubmitCheckin" class="btn btn-primary btn-block btn-lg">
+              <i class="fa-solid fa-check-circle"></i>
+              <span data-i18n="btnConfirmAttendance">Confirm & Submit Attendance (تأكيد الحضور)</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Check-in Success Confirmation Card -->
+        <div id="checkinSuccessCard" class="grid-card success-card hidden">
+          <div class="success-icon-badge">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+          <h2 data-i18n="successTitle">Attendance Confirmed Successfully!</h2>
+          <p data-i18n="successDesc">Your information has been verified and registered with UNRWA Staff Development & Training Division.</p>
+
+          <div class="receipt-box">
+            <div class="receipt-row">
+              <span class="receipt-lbl" data-i18n="rcptName">Name:</span>
+              <strong id="rcptNameVal" class="text-unrwa">Mohammad Al-Ghanem</strong>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-lbl" data-i18n="rcptEmpNo">Employee #:</span>
+              <span id="rcptEmpNoVal">10458291</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-lbl" data-i18n="rcptGender">Gender:</span>
+              <span id="rcptGenderVal">Male</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-lbl" data-i18n="rcptDept">Department:</span>
+              <span id="rcptDeptVal">Human Resources (HR)</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-lbl" data-i18n="rcptTitle">Title:</span>
+              <span id="rcptTitleVal">HR Assistant</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-lbl" data-i18n="rcptGrade">Grade:</span>
+              <span id="rcptGradeVal">Grade 8</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-lbl" data-i18n="rcptCourse">Course:</span>
+              <span id="rcptCourseVal">Conflict Resolution & Anger Management</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-lbl" data-i18n="rcptLocation">Location:</span>
+              <span id="rcptLocationVal">Damascus HQ</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-lbl" data-i18n="rcptTime">Timestamp:</span>
+              <span id="rcptTimeVal">10/10/2026, 09:15 AM</span>
+            </div>
+          </div>
+
+          <div class="success-actions">
+            <button id="btnNewCheckin" class="btn btn-secondary">
+              <i class="fa-solid fa-user-plus"></i>
+              <span data-i18n="btnRegisterAnother">Register Another Attendee</span>
+            </button>
+            <button id="btnReturnToAdmin" class="btn btn-outline">
+              <i class="fa-solid fa-arrow-left"></i>
+              <span data-i18n="btnBackToDashboard">Back to HR Dashboard</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 1: PROJECTOR FULLSCREEN MODE (عرض البروجيكتور بالقاعة)              -->
+  <!-- ========================================================================= -->
+  <div id="projectorModal" class="fullscreen-modal hidden">
+    <div class="projector-container">
+      <button id="btnCloseProjector" class="modal-close-btn" title="Close Projector Mode">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="projector-header">
+        <div class="unrwa-seal-large">
+          <i class="fa-solid fa-earth-americas"></i>
+        </div>
+        <span class="projector-sub">UNITED NATIONS RELIEF AND WORKS AGENCY · HR STAFF DEVELOPMENT</span>
+        <h1 id="projCourseTitle">Conflict Resolution & Anger Management</h1>
+        <div class="proj-meta">
+          <span><i class="fa-solid fa-location-dot"></i> <span id="projLocation">Damascus HQ</span></span>
+          <span><i class="fa-solid fa-user-tie"></i> <span id="projTrainer">Trainer</span></span>
+          <span><i class="fa-solid fa-calendar"></i> <span id="projDate">Date</span></span>
+          <span><i class="fa-solid fa-clock"></i> <span id="projTime">Timing</span></span>
+        </div>
+      </div>
+
+      <div class="projector-body">
+        <div class="projector-instruction">
+          <i class="fa-solid fa-camera"></i>
+          <h3 data-i18n="projInstructionTitle">Scan QR with your phone camera to register attendance</h3>
+          <p data-i18n="projInstructionDesc">Ensure your name is typed accurately in English for your official completion certificate.</p>
+        </div>
+
+        <div class="projector-qr-card">
+          <div id="projectorQrcode"></div>
+        </div>
+      </div>
+
+      <div class="projector-footer">
+        <div class="live-counter-pill">
+          <span class="pulse-dot"></span>
+          <span data-i18n="projLiveCount">Attendees Registered:</span>
+          <b id="projAttendeeCount">0</b>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL 2: PRINTABLE A4 TABLE FLYER (للطباعة على ورق A4 لطاولة الاستقبال)  -->
+  <!-- ========================================================================= -->
+  <div id="printFlyerModal" class="printable-modal hidden">
+    <div class="print-flyer-toolbar no-print">
+      <button id="btnExecutePrint" class="btn btn-primary">
+        <i class="fa-solid fa-print"></i>
+        <span data-i18n="btnPrintNow">Print Now (طباعة الآن)</span>
+      </button>
+      <button id="btnClosePrintFlyer" class="btn btn-secondary">
+        <i class="fa-solid fa-xmark"></i>
+        <span data-i18n="btnClose">Close (إغلاق)</span>
+      </button>
+    </div>
+
+    <div class="a4-page" id="printableA4Sheet">
+      <div class="flyer-header">
+        <div class="flyer-un-logo">
+          <i class="fa-solid fa-earth-americas"></i>
+          <div>
+            <h2>UNRWA</h2>
+            <small>HUMAN RESOURCES · STAFF DEVELOPMENT & TRAINING DIVISION</small>
+          </div>
+        </div>
+        <div class="flyer-badge">TRAINING ATTENDANCE</div>
+      </div>
+
+      <div class="flyer-hero">
+        <h1 id="flyerCourseTitle">Conflict Resolution & Anger Management</h1>
+        <div class="flyer-details-grid">
+          <div><strong>Location:</strong> <span id="flyerLocation">Damascus HQ</span></div>
+          <div><strong>Trainer:</strong> <span id="flyerTrainer">Trainer</span></div>
+          <div><strong>Date:</strong> <span id="flyerDate">Date</span></div>
+          <div><strong>Timing:</strong> <span id="flyerTime">09:00 AM - 02:00 PM</span></div>
+        </div>
+      </div>
+
+      <div class="flyer-qr-section">
+        <div class="flyer-qr-border">
+          <div id="flyerQrcode"></div>
+        </div>
+        <div class="flyer-steps">
+          <h3><i class="fa-solid fa-qrcode"></i> Electronic Attendance Instructions:</h3>
+          <ol>
+            <li>Open the Camera app on your smartphone and aim at this QR Code.</li>
+            <li>Tap the notification banner to open the UNRWA Attendance Form.</li>
+            <li>Enter your <strong>Employee Number</strong> and <strong>Name in English</strong>.</li>
+            <li>Check the live certificate preview on your screen to verify exact spelling.</li>
+            <li>Submit the form to record your official attendance.</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="flyer-footer">
+        <p>United Nations Relief and Works Agency for Palestine Refugees in the Near East · www.unrwa.org</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
