@@ -350,7 +350,13 @@
     // Listen to sessions node
     db.ref('sessions').on('value', (snapshot) => {
       const val = snapshot.val();
-      if (!val) return;
+      if (!val) {
+        allSessions = [];
+        saveLocalSessions();
+        renderSessionsAccordion();
+        updateGlobalStats();
+        return;
+      }
 
       let hasChanges = false;
       let newAttendeeArrival = null;
