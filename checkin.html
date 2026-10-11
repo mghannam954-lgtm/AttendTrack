@@ -157,7 +157,18 @@
             </label>
             <div class="select-with-custom">
               <select id="deptSelect" class="form-input" required>
-                <!-- Dynamically populated based on active language -->
+                <option value="" disabled selected data-i18n="optSelectDept">-- اختر القسم أو البرنامج --</option>
+                <option value="برنامج التعليم">برنامج التعليم</option>
+                <option value="برنامج الصحة">برنامج الصحة</option>
+                <option value="برنامج الإغاثة والخدمات الاجتماعية (RSSP)">برنامج الإغاثة والخدمات الاجتماعية (RSSP)</option>
+                <option value="دائرة الموارد البشرية (HR)">دائرة الموارد البشرية (HR)</option>
+                <option value="دائرة المشتريات والخدمات اللوجستية">دائرة المشتريات والخدمات اللوجستية</option>
+                <option value="دائرة الشؤون المالية">دائرة الشؤون المالية</option>
+                <option value="قسم الأمن والسلامة">قسم الأمن والسلامة</option>
+                <option value="دائرة تكنولوجيا المعلومات (IMTD)">دائرة تكنولوجيا المعلومات (IMTD)</option>
+                <option value="دائرة الهندسة وتحسين المخيمات (ICIP)">دائرة الهندسة وتحسين المخيمات (ICIP)</option>
+                <option value="إدارة العمليات والمناطق">إدارة العمليات والمناطق</option>
+                <option value="__custom__" data-i18n="optCustomDept">+ قسم أو برنامج آخر...</option>
               </select>
               <input type="text" id="deptCustomInput" class="form-input hidden mt-2" data-i18n-ph="phCustomDept" placeholder="اكتب اسم القسم هنا...">
             </div>
@@ -179,7 +190,24 @@
                 <span class="req">*</span>
               </label>
               <select id="gradeSelect" class="form-input" required>
-                <!-- Dynamically populated based on active language -->
+                <option value="" disabled selected data-i18n="optSelectGrade">-- اختر الدرجة الوظيفية --</option>
+                <option value="الدرجة 5">الدرجة 5</option>
+                <option value="الدرجة 6">الدرجة 6</option>
+                <option value="الدرجة 7">الدرجة 7</option>
+                <option value="الدرجة 8">الدرجة 8</option>
+                <option value="الدرجة 9">الدرجة 9</option>
+                <option value="الدرجة 10">الدرجة 10</option>
+                <option value="الدرجة 11">الدرجة 11</option>
+                <option value="الدرجة 12">الدرجة 12</option>
+                <option value="الدرجة 13">الدرجة 13</option>
+                <option value="الدرجة 14">الدرجة 14</option>
+                <option value="الدرجة 15">الدرجة 15</option>
+                <option value="الدرجة 16">الدرجة 16</option>
+                <option value="الدرجة 17">الدرجة 17</option>
+                <option value="الدرجة 18 فما فوق">الدرجة 18 فما فوق</option>
+                <option value="الدرجة القيادية (PL)">الدرجة القيادية (PL)</option>
+                <option value="عقد / مياومة">عقد / مياومة</option>
+                <option value="متطوع / متدرب">متطوع / متدرب</option>
               </select>
             </div>
           </div>

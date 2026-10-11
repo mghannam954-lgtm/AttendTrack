@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -39,7 +39,7 @@
         </div>
         <div class="brand-text">
           <span class="brand-title">AttendTrack · UNRWA HR</span>
-          <span class="brand-subtitle" id="portalSubTitle" data-i18n="portalSubTitle">Staff Development & Training Division · UNRWA HQ</span>
+          <span class="brand-subtitle" id="portalSubTitle" data-i18n="portalSubTitle">قسم تطوير الموظفين والتدريب · رئاسة الأونروا</span>
         </div>
       </div>
 
@@ -47,18 +47,18 @@
         <!-- Live Cloud Sync Status Badge -->
         <span class="status-pill status-connected" id="adminCloudStatus" title="Realtime Database Connection">
           <span class="status-indicator"></span>
-          <span id="adminCloudText" data-i18n="cloudOnline">Cloud Connected</span>
+          <span id="adminCloudText" data-i18n="cloudOnline">متصل سحابياً</span>
         </span>
 
         <!-- HR Role Badge -->
         <div class="role-badge-hr">
-          <span data-i18n="badgeHrConsole">HR Console</span>
+          <span data-i18n="badgeHrConsole">لوحة المشرف</span>
         </div>
 
         <!-- Language Switcher -->
         <button id="langToggleBtn" class="lang-toggle-btn" title="Toggle Language">
           <i class="fa-solid fa-globe"></i>
-          <span id="currentLangLabel">العربية</span>
+          <span id="currentLangLabel">English</span>
         </button>
       </div>
     </div>
@@ -74,19 +74,19 @@
       <div class="hero-banner">
         <div class="hero-content">
           <div class="badge-tag">
-            <span data-i18n="badgeOfficial">Official UNRWA Staff Development Console</span>
+            <span data-i18n="badgeOfficial">بوابة التدريب الرسمية - دائرة الموارد البشرية</span>
           </div>
-          <h1 data-i18n="adminHeroTitle">UNRWA Training & Attendance Management Portal</h1>
-          <p data-i18n="adminHeroDesc">Official electronic attendance tracking and automated training documentation system.</p>
+          <h1 data-i18n="adminHeroTitle">بوابة إدارة التدريب وتطوير الموظفين - الأونروا</h1>
+          <p data-i18n="adminHeroDesc">المنظومة الرسمية لإدارة الحضور الإلكتروني والتوثيق المعتمد للدورات التدريبية.</p>
         </div>
         <div class="hero-stats">
           <div class="stat-card">
             <span class="stat-num" id="heroTotalAttendees">0</span>
-            <span class="stat-label" data-i18n="statRegistered">Total Registered Attendees</span>
+            <span class="stat-label" data-i18n="statRegistered">إجمالي الحضور المسجلين</span>
           </div>
           <div class="stat-card">
             <span class="stat-num" id="heroActiveSessions">0</span>
-            <span class="stat-label" data-i18n="statActiveSession">Active Training Sessions</span>
+            <span class="stat-label" data-i18n="statActiveSession">الدورات التدريبية النشطة</span>
           </div>
         </div>
       </div>
@@ -97,9 +97,9 @@
         <div class="grid-card session-config-card">
           <div class="card-header">
             <div class="header-icon-title">
-              <h2 data-i18n="sessionSetupTitle">Training Session Configuration</h2>
+              <h2 data-i18n="sessionSetupTitle">بيانات الجلسة التدريبية</h2>
             </div>
-            <span class="card-hint" data-i18n="sessionSetupHint">Enter session parameters to generate active check-in QR code</span>
+            <span class="card-hint" data-i18n="sessionSetupHint">حدد تفاصيل الجلسة لتوليد رمز الـ QR وتفعيل التسجيل</span>
           </div>
 
           <form id="sessionForm" class="session-form" onsubmit="return false;">
@@ -107,37 +107,54 @@
             <!-- 1. Course Name -->
             <div class="form-group">
               <label for="courseSelect">
-                <span data-i18n="lblCourseName">Training Course Title</span>
+                <span data-i18n="lblCourseName">اسم الدورة التدريبية</span>
                 <span class="req">*</span>
               </label>
               <div class="select-with-custom">
                 <select id="courseSelect" class="form-input" required>
-                  <!-- Dynamically populated based on active language -->
+                  <option value="" disabled selected data-i18n="optSelectCourse">-- اختر الدورة التدريبية --</option>
+                  <option value="حل النزاعات وإدارة الغضب">حل النزاعات وإدارة الغضب</option>
+                  <option value="مهارات التواصل الفعال وبناء الفريق">مهارات التواصل الفعال وبناء الفريق</option>
+                  <option value="مدونة قواعد السلوك وأخلاقيات العمل">مدونة قواعد السلوك وأخلاقيات العمل</option>
+                  <option value="المهارات الإشرافية والقيادة الحديثة">المهارات الإشرافية والقيادة الحديثة</option>
+                  <option value="الدعم النفسي والاجتماعي وإدارة ضغوط العمل">الدعم النفسي والاجتماعي وإدارة ضغوط العمل</option>
+                  <option value="المبادئ الإنسانية والسلامة الميدانية">المبادئ الإنسانية والسلامة الميدانية</option>
+                  <option value="الأمن السيبراني وحماية البيانات">الأمن السيبراني وحماية البيانات</option>
+                  <option value="نظام إدارة الأداء وتقييم الموظفين (e-PAS)">نظام إدارة الأداء وتقييم الموظفين (e-PAS)</option>
+                  <option value="__custom__" data-i18n="optCustomCourse">+ إدخال اسم دورة أخرى...</option>
                 </select>
-                <input type="text" id="courseCustomInput" class="form-input hidden mt-2" data-i18n-ph="phCustomCourse" placeholder="Type custom course title here...">
+                <input type="text" id="courseCustomInput" class="form-input hidden mt-2" data-i18n-ph="phCustomCourse" placeholder="اكتب اسم الدورة هنا...">
               </div>
             </div>
 
             <!-- 2. Trainer Name -->
             <div class="form-group">
               <label for="trainerInput">
-                <span data-i18n="lblTrainerName">Trainer Name</span>
+                <span data-i18n="lblTrainerName">اسم المدرب</span>
                 <span class="req">*</span>
               </label>
-              <input type="text" id="trainerInput" class="form-input" data-i18n-ph="phTrainer" placeholder="e.g. Dr. Ahmad Al-Khatib" required>
+              <input type="text" id="trainerInput" class="form-input" data-i18n-ph="phTrainer" placeholder="مثال: د. أحمد الخطيب" required>
             </div>
 
             <!-- 3. Location -->
             <div class="form-group">
               <label for="locationSelect">
-                <span data-i18n="lblLocation">Training Venue / Location</span>
+                <span data-i18n="lblLocation">مكان التدريب / المركز</span>
                 <span class="req">*</span>
               </label>
               <div class="select-with-custom">
                 <select id="locationSelect" class="form-input" required>
-                  <!-- Dynamically populated based on active language -->
+                  <option value="" disabled selected data-i18n="optSelectLocation">-- اختر مكان التدريب --</option>
+                  <option value="دمشق - رئاسة الأونروا (HQ)">دمشق - رئاسة الأونروا (HQ)</option>
+                  <option value="دمشق - معهد دمشق المتوسط (DTC)">دمشق - معهد دمشق المتوسط (DTC)</option>
+                  <option value="مكتب منطقة دمشق - المزة">مكتب منطقة دمشق - المزة</option>
+                  <option value="مكتب منطقة درعا">مكتب منطقة درعا</option>
+                  <option value="مكتب منطقة حمص">مكتب منطقة حمص</option>
+                  <option value="مكتب منطقة حماة">مكتب منطقة حماة</option>
+                  <option value="مكتب اللاذقية وطرطوس">مكتب اللاذقية وطرطوس</option>
+                  <option value="__custom__" data-i18n="optCustomLocation">+ تحديد مكان آخر...</option>
                 </select>
-                <input type="text" id="locationCustomInput" class="form-input hidden mt-2" data-i18n-ph="phCustomLocation" placeholder="Type custom venue/room name...">
+                <input type="text" id="locationCustomInput" class="form-input hidden mt-2" data-i18n-ph="phCustomLocation" placeholder="اكتب اسم المركز أو القاعة هنا...">
               </div>
             </div>
 

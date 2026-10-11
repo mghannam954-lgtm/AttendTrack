@@ -7,7 +7,16 @@
 (function () {
   'use strict';
 
-  // 1. Firebase Configuration & Initialization
+  // 1. Application State & Language (Declared first to avoid TDZ ReferenceError)
+  let currentLang = 'ar'; // Default Arabic for HR Portal
+  let currentSession = null;
+  let allSessions = [];
+  let adminQr = null;
+  let projectorQr = null;
+  let flyerQr = null;
+  let isInitialFirebaseLoad = true;
+
+  // 2. Firebase Configuration & Initialization
   const firebaseConfig = {
     apiKey: "AIzaSyAMZ9MPm-SRsJJ4yVcjugnbZluFFTrWkYU",
     authDomain: "unrwa-attend.firebaseapp.com",
@@ -49,15 +58,6 @@
       text.textContent = (currentLang === 'ar') ? 'وضع محلي' : 'Local Mode';
     }
   }
-
-  // 2. Application State
-  let currentSession = null;
-  let allSessions = [];
-  let currentLang = 'en'; // 'en' | 'ar'
-  let adminQr = null;
-  let projectorQr = null;
-  let flyerQr = null;
-  let isInitialFirebaseLoad = true;
 
   // 3. Catalogs for Bilingual Dynamic Dropdowns
   const courseCatalog = [
