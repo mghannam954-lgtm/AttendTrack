@@ -472,8 +472,8 @@
             </div>
           </div>
           <div style="margin-top: 0.75rem;">
-            <label class="qm-label" data-i18n="qmTextLabel">نص السؤال (باللغة العربية):</label>
-            <input type="text" id="qmNewTextAr" class="form-input form-input-sm" placeholder="اكتب صيغة السؤال هنا..." required>
+            <label class="qm-label" data-i18n="qmTextLabel">نص السؤال (باللغة العربية / الإنكليزية):</label>
+            <input type="text" id="qmNewTextAr" class="form-input form-input-sm" data-i18n-ph="qmInputPlaceholder" placeholder="اكتب صيغة السؤال هنا..." required>
           </div>
           <div style="display: flex; justify-content: flex-end; margin-top: 0.75rem;">
             <button type="button" id="btnAddQuestionSubmit" class="btn btn-primary btn-sm">
@@ -486,7 +486,7 @@
         <div class="qm-list-header">
           <div class="qm-list-title-wrap">
             <h4 class="qm-list-title" data-i18n="qmListTitle">الأسئلة الحالية في الاستمارة</h4>
-            <span class="qm-count-pill"><span id="qmActiveCount">21</span> سؤال مفعّل</span>
+            <span class="qm-count-pill"><span id="qmActiveCount">21</span> <span data-i18n="qmQuestionsUnit">سؤال مفعّل</span></span>
           </div>
           <button type="button" id="btnResetDefaultQuestions" class="btn btn-danger-outline btn-sm" title="العودة للقالب القياسي الرسمي">
             <i class="fa-solid fa-rotate-left"></i> <span data-i18n="qmBtnReset">استعادة القالب الرسمي (21 سؤال)</span>

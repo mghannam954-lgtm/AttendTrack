@@ -240,14 +240,24 @@
       qmAddNewTitle: 'Add New Question to Form',
       qmSecLabel: 'Evaluation Section:',
       qmTypeLabel: 'Answer Type:',
-      qmTextLabel: 'Question Text (Arabic / English):',
+      qmTextLabel: 'Question Text (English / Arabic):',
+      qmInputPlaceholder: 'Enter question text here...',
       qmBtnAdd: 'Add Question',
       qmListTitle: 'Current Form Questions',
+      qmQuestionsUnit: 'Active Questions',
       qmBtnReset: 'Reset to UN Official Template (21 Questions)',
       qmBtnSave: 'Save & Apply Changes',
+      qmToggleActive: 'Active',
+      qmToggleDisabled: 'Disabled',
+      qmToggleTitle: 'Enable or disable this question',
+      qmDeleteTitle: 'Delete this question',
       toastQuestionsSaved: 'Evaluation questions configuration saved successfully.',
       toastQuestionsReset: 'Evaluation questions reset to official UNRWA template (21 questions).',
       confirmResetQuestions: 'Are you sure you want to reset all evaluation questions to the official UN template (21 questions)?',
+      confirmDeleteQuestion: 'Are you sure you want to remove this question from the evaluation form?',
+      toastQuestionDeleted: 'Question removed from list.',
+      toastQuestionAdded: 'Question added. Click "Save & Apply Changes" to commit.',
+      toastQuestionTextRequired: 'Please enter question text first.',
       linkOpenForm: 'Open Form',
       confirmClearArchive: 'Are you sure you want to delete all session archives? This action cannot be undone.',
       confirmDeleteAttendee: 'Are you sure you want to remove this attendee?',
@@ -371,14 +381,24 @@
       qmAddNewTitle: 'إضافة سؤال جديد إلى الاستمارة',
       qmSecLabel: 'قسم التقييم:',
       qmTypeLabel: 'نوع الإجابة:',
-      qmTextLabel: 'نص السؤال (باللغة العربية):',
+      qmTextLabel: 'نص السؤال (باللغة العربية / الإنكليزية):',
+      qmInputPlaceholder: 'اكتب صيغة السؤال هنا...',
       qmBtnAdd: 'إضافة السؤال للاستمارة',
       qmListTitle: 'الأسئلة الحالية في الاستمارة',
+      qmQuestionsUnit: 'سؤال مفعّل',
       qmBtnReset: 'استعادة القالب الرسمي (21 سؤال)',
       qmBtnSave: 'حفظ وتطبيق التغييرات',
+      qmToggleActive: 'مفعّل',
+      qmToggleDisabled: 'معطّل',
+      qmToggleTitle: 'تفعيل أو تعطيل هذا السؤال في الاستمارة',
+      qmDeleteTitle: 'حذف هذا السؤال',
       toastQuestionsSaved: 'تم حفظ وتحديث أسئلة استمارة التقييم بنجاح.',
       toastQuestionsReset: 'تمت استعادة الأسئلة إلى القالب الرسمي المعتمد للأونروا (21 سؤال).',
       confirmResetQuestions: 'هل أنت متأكد من رغبتك في إعادة تعيين الأسئلة إلى القالب القياسي الرسمي (21 سؤال)؟',
+      confirmDeleteQuestion: 'هل أنت متأكد من حذف هذا السؤال من الاستمارة؟',
+      toastQuestionDeleted: 'تم حذف السؤال من القائمة.',
+      toastQuestionAdded: 'تمت إضافة السؤال بنجاح. لا تنسَ الضغط على "حفظ وتطبيق التغييرات".',
+      toastQuestionTextRequired: 'يرجى كتابة نص السؤال أولاً.',
       linkOpenForm: 'فتح الاستمارة',
       confirmClearArchive: 'هل أنت متأكد من رغبتك في مسح كامل أرشيف الدورات التدريبية؟ لا يمكن التراجع عن هذا الإجراء.',
       confirmDeleteAttendee: 'هل أنت متأكد من حذف هذا المتدرب من سجل الحضور؟',
@@ -437,6 +457,79 @@
     sel.innerHTML = html;
   }
 
+  function populateQuestionsManagerDropdowns(lang) {
+    const secSel = document.getElementById('qmNewSection');
+    const typeSel = document.getElementById('qmNewType');
+    const qInput = document.getElementById('qmNewTextAr');
+
+    if (qInput) {
+      qInput.placeholder = (lang === 'ar') ? 'اكتب صيغة السؤال هنا...' : 'Enter question text here...';
+    }
+
+    if (secSel) {
+      const currentSec = secSel.value || '1';
+      const sections = [
+        { val: '1', ar: '1. أهداف البرنامج ومحتوى الدورة', en: '1. Programme Objectives & Content' },
+        { val: '2', ar: '2. المدرب/ة وتقديم الدورة', en: '2. Trainer & Delivery' },
+        { val: '3', ar: '3. مكان التدريب والتنظيم', en: '3. Venue & Organization' },
+        { val: '4', ar: '4. التقييم الإجمالي والملاحظات', en: '4. Overall Rating & Comments' },
+        { val: '5', ar: '5. الأثر والارتباط بالعمل', en: '5. Impact & Relevance to Job' }
+      ];
+      secSel.innerHTML = sections.map(s => 
+        `<option value="${s.val}" ${s.val === currentSec ? 'selected' : ''}>${(lang === 'ar') ? s.ar : s.en}</option>`
+      ).join('');
+    }
+
+    if (typeSel) {
+      const currentType = typeSel.value || 'likert_5';
+      const types = [
+        { 
+          val: 'likert_5', 
+          ar: 'مقياس ليكرت خماسي: غير موافق بشدة إلى موافق بشدة (1-5)', 
+          en: '5-Point Likert Scale: Strongly Disagree to Strongly Agree (1-5)' 
+        },
+        { 
+          val: 'overall_5', 
+          ar: 'تقييم إجمالي خماسي: ضعيف جداً إلى ممتاز (1-5)', 
+          en: '5-Point Overall Rating: Very Poor to Excellent (1-5)' 
+        },
+        { 
+          val: 'relevance_5', 
+          ar: 'ارتباط بالوظيفة: لا صلة إلى وثيق الصلة (1-5)', 
+          en: '5-Point Job Relevance: Not at all to Highly Relevant (1-5)' 
+        },
+        { 
+          val: 'perform_3', 
+          ar: 'أثر الأداء: نعم بالتأكيد / ربما / لا', 
+          en: 'Performance Impact: Yes definitely / Maybe / No' 
+        },
+        { 
+          val: 'yes_somewhat_no', 
+          ar: 'خيارات: نعم / إلى حد ما / لا', 
+          en: 'Choices: Yes / Somewhat / No' 
+        },
+        { 
+          val: 'yes_no', 
+          ar: 'خيارات: نعم / لا', 
+          en: 'Choices: Yes / No' 
+        },
+        { 
+          val: 'rating_4', 
+          ar: 'تقييم: ممتاز / جيد جداً / جيد / ضعيف', 
+          en: 'Rating: Excellent / Very Good / Good / Poor' 
+        },
+        { 
+          val: 'text', 
+          ar: 'حقل نصي حر (ملاحظات ومقترحات)', 
+          en: 'Free Text Field (Comments & Suggestions)' 
+        }
+      ];
+      typeSel.innerHTML = types.map(t => 
+        `<option value="${t.val}" ${t.val === currentType ? 'selected' : ''}>${(lang === 'ar') ? t.ar : t.en}</option>`
+      ).join('');
+    }
+  }
+
   function applyLanguage(lang) {
     currentLang = lang;
     document.documentElement.lang = lang;
@@ -462,6 +555,8 @@
 
     populateCourseSelect(lang);
     populateLocationSelect(lang);
+    populateQuestionsManagerDropdowns(lang);
+    renderQuestionsManagerList();
     updateAdminCloudStatus(db !== null);
 
     const statusText = document.getElementById('qrStatusText');
@@ -1080,21 +1175,23 @@
     };
 
     const typeNames = {
-      likert_5: (currentLang === 'ar') ? 'مقياس خماسي (1-5)' : 'Scale (1-5)',
-      overall_5: (currentLang === 'ar') ? 'تقييم شامل (1-5)' : 'Overall (1-5)',
-      relevance_5: (currentLang === 'ar') ? 'صلة بالعمل (1-5)' : 'Relevance (1-5)',
-      perform_3: (currentLang === 'ar') ? 'تحسين الأداء (3 خيارات)' : 'Performance (3 choices)',
+      likert_5: (currentLang === 'ar') ? 'مقياس ليكرت (1-5)' : '5-Point Likert (1-5)',
+      overall_5: (currentLang === 'ar') ? 'تقييم شامل (1-5)' : 'Overall Rating (1-5)',
+      relevance_5: (currentLang === 'ar') ? 'صلة بالعمل (1-5)' : 'Job Relevance (1-5)',
+      perform_3: (currentLang === 'ar') ? 'أثر الأداء (3 خيارات)' : 'Performance (3 choices)',
       yes_somewhat_no: (currentLang === 'ar') ? 'نعم / إلى حد ما / لا' : 'Yes / Somewhat / No',
       yes_no: (currentLang === 'ar') ? 'نعم / لا' : 'Yes / No',
       rating_4: (currentLang === 'ar') ? 'تقييم 4 نجوم' : 'Rating (4 stars)',
-      text: (currentLang === 'ar') ? 'ملاحظات نصية' : 'Free Text'
+      text: (currentLang === 'ar') ? 'حقل نصي' : 'Free Text'
     };
+
+    const dict = translations[currentLang] || translations.ar;
 
     container.innerHTML = evalQuestions.map((q, idx) => {
       const isEnabled = (q.enabled !== false);
       const disabledClass = isEnabled ? '' : 'disabled';
       const toggleBtnClass = isEnabled ? 'active' : 'inactive';
-      const toggleBtnText = isEnabled ? ((currentLang === 'ar') ? 'مفعّل' : 'Active') : ((currentLang === 'ar') ? 'معطّل' : 'Disabled');
+      const toggleBtnText = isEnabled ? dict.qmToggleActive : dict.qmToggleDisabled;
       const qText = (currentLang === 'ar') ? (q.textAr || q.textEn) : (q.textEn || q.textAr);
 
       return `
@@ -1106,10 +1203,10 @@
               <span class="qm-badge-type">${typeNames[q.type] || q.type}</span>
             </div>
             <div class="qm-actions-group">
-              <button type="button" class="btn-qm-toggle ${toggleBtnClass}" onclick="window.AttendTrackAdmin.toggleQuestionEnable('${q.id}')" title="تفعيل أو تعطيل هذا السؤال في الاستمارة">
+              <button type="button" class="btn-qm-toggle ${toggleBtnClass}" onclick="window.AttendTrackAdmin.toggleQuestionEnable('${q.id}')" title="${dict.qmToggleTitle}">
                 <i class="fa-solid ${isEnabled ? 'fa-check' : 'fa-ban'}"></i> ${toggleBtnText}
               </button>
-              <button type="button" class="btn-qm-delete" onclick="window.AttendTrackAdmin.deleteQuestion('${q.id}')" title="حذف هذا السؤال">
+              <button type="button" class="btn-qm-delete" onclick="window.AttendTrackAdmin.deleteQuestion('${q.id}')" title="${dict.qmDeleteTitle}">
                 <i class="fa-solid fa-trash-can"></i>
               </button>
             </div>
@@ -1117,7 +1214,7 @@
           <div>
             <input type="text" class="form-input form-input-sm qm-input-text" value="${escapeHtml(qText)}" 
               onchange="window.AttendTrackAdmin.updateQuestionText('${q.id}', this.value)"
-              placeholder="${(currentLang === 'ar') ? 'اكتب نص السؤال هنا...' : 'Question text...'}">
+              placeholder="${dict.qmInputPlaceholder}">
           </div>
         </div>
       `;
@@ -1479,10 +1576,10 @@
 
     deleteQuestion: function (qId) {
       const dict = translations[currentLang];
-      if (confirm((currentLang === 'ar') ? 'هل أنت متأكد من حذف هذا السؤال من الاستمارة؟' : 'Are you sure you want to remove this question?')) {
+      if (confirm(dict.confirmDeleteQuestion)) {
         evalQuestions = evalQuestions.filter(item => item.id !== qId);
         renderQuestionsManagerList();
-        showToast((currentLang === 'ar') ? 'تم حذف السؤال من القائمة.' : 'Question removed.', 'info');
+        showToast(dict.toastQuestionDeleted, 'info');
       }
     },
 
@@ -1680,6 +1777,7 @@
 
     function openQuestionsModal() {
       if (!modalQM) return;
+      populateQuestionsManagerDropdowns(currentLang);
       modalQM.classList.remove('hidden');
       renderQuestionsManagerList();
     }
@@ -1713,8 +1811,9 @@
         const textInput = document.getElementById('qmNewTextAr');
         const textVal = textInput ? textInput.value.trim() : '';
 
+        const dict = translations[currentLang];
         if (!textVal) {
-          showToast((currentLang === 'ar') ? 'يرجى كتابة نص السؤال أولاً.' : 'Please enter question text.', 'error');
+          showToast(dict.toastQuestionTextRequired, 'error');
           return;
         }
 
@@ -1730,7 +1829,7 @@
         evalQuestions.push(newQ);
         if (textInput) textInput.value = '';
         renderQuestionsManagerList();
-        showToast((currentLang === 'ar') ? 'تمت إضافة السؤال بنجاح. لا تنسَ الضغط على "حفظ وتطبيق التغييرات".' : 'Question added. Click Save to apply.', 'info');
+        showToast(dict.toastQuestionAdded, 'info');
       });
     }
 
