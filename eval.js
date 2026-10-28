@@ -1,6 +1,7 @@
 /**
  * AttendTrack - Anonymous Training Evaluation Logic
- * UNRWA HR Staff Development & Training Division
+ * UNRWA HR Staff Development & Training Division · Damascus Headquarters
+ * Learning Evaluation Form Level 1 (Official Template - 21 Questions)
  * 100% Anonymous Evaluation + Real-time Firebase Sync + Full Bilingual Support
  */
 
@@ -19,19 +20,38 @@
     sessionId: 'session_default'
   };
 
+  // Official UNRWA Level 1 Evaluation Template (from FinalEvaluationForm (Arb-Eng).docx)
   const DEFAULT_QUESTIONS = [
-    { id: 'q1', section: 1, type: 'yes_somewhat_no', textAr: 'هل كانت محتويات الدورة واضحة ومفهومة؟', textEn: 'Were the course contents clear and understandable?', enabled: true },
-    { id: 'q2', section: 1, type: 'yes_somewhat_no', textAr: 'هل كانت المعلومات المقدمة في الدورة مفيدة لعملك؟', textEn: 'Was the information provided in the course useful for your job?', enabled: true },
-    { id: 'q3', section: 1, type: 'yes_somewhat_no', textAr: 'هل كانت مواد التدريب (العروض التقديمية، الملاحظات، إلخ) ذات جودة عالية؟', textEn: 'Were the training materials (slides, notes, etc.) of high quality?', enabled: true },
-    { id: 'q4', section: 2, type: 'yes_somewhat_no', textAr: 'هل كان المدرب على دراية بالموضوع؟', textEn: 'Was the instructor knowledgeable about the subject?', enabled: true },
-    { id: 'q5', section: 2, type: 'yes_no', textAr: 'هل كان المدرب مفيداً ومستعداً للإجابة على الأسئلة؟', textEn: 'Was the instructor helpful and willing to answer questions?', enabled: true },
-    { id: 'q6', section: 2, type: 'yes_no', textAr: 'هل كانت طريقة تقديم المدرب فعالة؟', textEn: 'Was the instructor\'s delivery method effective?', enabled: true },
-    { id: 'q7', section: 3, type: 'yes_somewhat_no', textAr: 'هل كانت الدورة منظمة جيداً؟ (الوقت، المكان، الجدول الزمني، إلخ)؟', textEn: 'Was the course well-organized? (timing, location, schedule, etc.)?', enabled: true },
-    { id: 'q8', section: 3, type: 'yes_no', textAr: 'هل كانت مدة الدورة مناسبة لتغطية المواضيع؟', textEn: 'Was the duration of the course appropriate to cover the topics?', enabled: true },
-    { id: 'q9', section: 4, type: 'yes_no', textAr: 'هل تعتقد أنك ستكون قادراً على تطبيق ما تعلمته في عملك اليومي؟', textEn: 'Do you believe you will be able to apply what you learned in your daily work?', enabled: true },
-    { id: 'q10', section: 4, type: 'yes_no', textAr: 'هل تعتقد أن الدورة ستساهم في تحسين أدائك في العمل؟', textEn: 'Do you think the course will contribute to improving your job performance?', enabled: true },
-    { id: 'q11', section: 5, type: 'rating_4', textAr: 'ما تقييمك العام للدورة التدريبية ككل؟', textEn: 'What is your overall rating of the course?', enabled: true },
-    { id: 'q12', section: 5, type: 'text', textAr: 'هل لديك أي اقتراحات أو ملاحظات لتحسين وتطوير التدريب؟', textEn: 'Do you have any suggestions or comments to improve training?', enabled: true }
+    // Section 1: The Programme Objectives and Course content (أهداف البرنامج ومحتوى الدورة)
+    { id: 'q1', section: 1, type: 'likert_5', textAr: 'أهداف البرنامج التدريبي كانت واضحة', textEn: 'The programme objectives were clear.', enabled: true },
+    { id: 'q2', section: 1, type: 'likert_5', textAr: 'محتوى البرنامج التدريبي والأنشطة ذات صلة بأهداف البرنامج التدريبي', textEn: 'The programme content and activities were relevant to the programme objectives.', enabled: true },
+    { id: 'q3', section: 1, type: 'likert_5', textAr: 'مدة البرنامج التدريبي مناسبة', textEn: 'The length of the programme was adequate.', enabled: true },
+    { id: 'q4', section: 1, type: 'likert_5', textAr: 'الأمثلة والنقاشات والأنشطة المطروحة ذات صلة بعملي', textEn: 'The examples, discussions and activities were relevant to my job.', enabled: true },
+    { id: 'q5', section: 1, type: 'likert_5', textAr: 'المادة التدريبية واضحة ومهنية', textEn: 'The materials were clear and professional.', enabled: true },
+
+    // Section 2: The Trainer and Course Delivery (المدرب/ة وتقديم الدورة)
+    { id: 'q6', section: 2, type: 'likert_5', textAr: 'حدد نتائج التدريب وأهدافه التعليمية', textEn: 'The trainer stated the learning outcomes.', enabled: true },
+    { id: 'q7', section: 2, type: 'likert_5', textAr: 'محضر ومنظم بشكل جيد', textEn: 'The trainer was well organized and prepared.', enabled: true },
+    { id: 'q8', section: 2, type: 'likert_5', textAr: 'خلق جو تعلم إيجابي ومحفز', textEn: 'The trainer created a positive learning atmosphere.', enabled: true },
+    { id: 'q9', section: 2, type: 'likert_5', textAr: 'أظهر خبرة وتمكناً بالمادة التدريبية', textEn: 'The trainer showed expertise in the subject.', enabled: true },
+    { id: 'q10', section: 2, type: 'likert_5', textAr: 'قدم المادة التدريبية بطريقة منطقية وسلسة', textEn: 'The trainer presented the material in a logical way.', enabled: true },
+    { id: 'q11', section: 2, type: 'likert_5', textAr: 'سأل وأجاب عن الأسئلة بشكل كامل ومتمكن', textEn: 'The trainer asked and answered questions competently.', enabled: true },
+    { id: 'q12', section: 2, type: 'likert_5', textAr: 'قادر على إدارة الجلسة وتعامل مع المتدربين بمساواة واحترام', textEn: 'The trainer was able to control the session and deal with participants fairly, and with respect.', enabled: true },
+    { id: 'q13', section: 2, type: 'likert_5', textAr: 'ممتعاً ومحفزاً للمشاركين', textEn: 'The trainer was interesting and motivated me.', enabled: true },
+    { id: 'q14', section: 2, type: 'likert_5', textAr: 'أداء المدرب كان ممتازاً بشكل عام', textEn: 'The trainer was excellent.', enabled: true },
+
+    // Section 3: Training Venue and Organization (مكان التدريب والتنظيم)
+    { id: 'q15', section: 3, type: 'likert_5', textAr: 'هل تلقيت إشعاراً عن التدريب بوقت كافٍ؟', textEn: 'Did you receive sufficient notice about this training?', enabled: true },
+    { id: 'q16', section: 3, type: 'likert_5', textAr: 'هل تلقيت الدعم الكافي لحضور التدريب؟', textEn: 'Did you receive sufficient support to attend this training?', enabled: true },
+    { id: 'q17', section: 3, type: 'likert_5', textAr: 'مكان التدريب كان مريحاً ومناسباً', textEn: 'Was the training venue comfortable?', enabled: true },
+
+    // Section 4: Overall Rating of the course (التقييم الإجمالي للدورة والملاحظات)
+    { id: 'q18', section: 4, type: 'overall_5', textAr: 'تقييم التدريب بشكل إجمالي', textEn: 'Overall Rating of the course', enabled: true },
+    { id: 'q19', section: 4, type: 'text', textAr: 'يرجى تزويدنا بأي ملاحظات أو مقترحات عامة حول الدورة أو المدرب:', textEn: 'Please provide us with some overall comments about the course/trainer:', enabled: true },
+
+    // Section 5: Impact & Relevance to Job (الأثر والارتباط بالعمل الحالي)
+    { id: 'q20', section: 5, type: 'relevance_5', textAr: 'هل كان هذا التدريب ذا صلة بعملك ودورك الوظيفي الحالي؟', textEn: 'Was this training relevant to your current job role?', enabled: true },
+    { id: 'q21', section: 5, type: 'perform_3', textAr: 'هل سيساعدك التدريب على الأداء بشكل أفضل في منصبك الحالي؟', textEn: 'Will this training help you to perform better in your current position?', enabled: true }
   ];
 
   let evalQuestions = [];
@@ -39,30 +59,46 @@
   // 2. Bilingual Dictionary
   const translations = {
     ar: {
-      portalSubTitle: 'استمارة تقييم التدريب السرية',
+      portalSubTitle: 'استمارة تقييم التدريب - المستوى الأول',
+      formLevelBadge: 'للدورات التدريبية التي تقل مدتها عن 3 أيام',
       cloudOnline: 'متصل سحابياً',
       cloudOffline: 'وضع محلي',
       evalBannerBadge: 'تقييم سري ومجهول الهوية 100%',
       noticeTitle: 'ملاحظة السرية التامة',
-      noticeDesc: 'هذا التقييم مجهول الهوية تماماً ولا يسجل اسمك أو رقمك الوظيفي أو بريدك. إجاباتك تساعدنا على تحسين وتطوير جودة البرامج التدريبية المستقبلية.',
-      grpContentTitle: 'تقييم محتوى التدريب (Course Content)',
-      q1Title: '1. هل كانت محتويات الدورة واضحة ومفهومة؟',
-      q2Title: '2. هل كانت المعلومات المقدمة في الدورة مفيدة لعملك؟',
-      q3Title: '3. هل كانت مواد التدريب (العروض التقديمية، الملاحظات، إلخ) ذات جودة عالية؟',
-      grpTrainerTitle: 'تقييم المدرب (Trainer Evaluation)',
-      q4Title: '4. هل كان المدرب على دراية بالموضوع؟',
-      q5Title: '5. هل كان المدرب مفيداً ومستعداً للإجابة على الأسئلة؟',
-      q6Title: '6. هل كانت طريقة تقديم المدرب فعالة؟',
-      grpOrgTitle: 'تنظيم الدورة والجدول الزمني (Course Organization)',
-      q7Title: '7. هل كانت الدورة منظمة جيداً؟ (الوقت، المكان، الجدول الزمني، إلخ)؟',
-      q8Title: '8. هل كانت مدة الدورة مناسبة لتغطية المواضيع؟',
-      grpImpactTitle: 'الأثر والتطبيق في العمل (Impact and Application)',
-      q9Title: '9. هل تعتقد أنك ستكون قادراً على تطبيق ما تعلمته في عملك اليومي؟',
-      q10Title: '10. هل تعتقد أن الدورة ستساهم في تحسين أدائك في العمل؟',
-      grpOverallTitle: 'التقييم العام والمقترحات (Overall Evaluation & Feedback)',
-      q11Title: '11. ما تقييمك العام للدورة؟',
-      q12Title: '12. هل لديك أي اقتراحات لتحسين الدورات المستقبلية؟',
-      q12Placeholder: 'اكتب ملاحظاتك ومقترحاتك بكل حرية...',
+      noticeDesc: 'نشكر لك تخصيص وقتك لملء هذه الاستمارة. إجاباتك وملاحظاتك مجهولة الهوية تماماً، وتساعدنا على تطوير وتحسين كافة البرامج التدريبية المستقبلية.',
+      grpContentTitle: '1) أهداف البرنامج التدريبي ومحتوى الدورة',
+      grpTrainerTitle: '2) المدرب/ة وتقديم الدورة',
+      grpOrgTitle: '3) مكان التدريب والتنظيم',
+      grpOverallTitle: '4) التقييم الإجمالي للدورة والملاحظات',
+      grpImpactTitle: '5) الأثر والارتباط بالعمل',
+
+      // Likert 5 labels
+      likert5: 'أوافق وبشدة',
+      likert4: 'موافق',
+      likert3: 'محايد',
+      likert2: 'غير موافق',
+      likert1: 'غير موافق وبشدة',
+
+      // Overall 5 labels
+      overall5: 'ممتاز',
+      overall4: 'جيد',
+      overall3: 'متوسط',
+      overall2: 'ضعيف',
+      overall1: 'ضعيف جداً',
+
+      // Relevance 5 labels
+      relevance5: 'ذو صلة وثيقة جداً',
+      relevance4: 'ذو صلة',
+      relevance3: 'غير متأكد',
+      relevance2: 'ذو صلة جزئياً',
+      relevance1: 'غير ذي صلة إطلاقاً',
+
+      // Perform 3 labels
+      perform3: 'نعم، بالتأكيد سيساعدني',
+      perform2: 'ربما، لست متأكداً',
+      perform1: 'لا، لا أعتقد ذلك',
+
+      // Traditional 3 & 2
       optYes: 'نعم',
       optSomewhat: 'إلى حد ما',
       optNo: 'لا',
@@ -70,39 +106,56 @@
       rateVGood: 'جيد جداً',
       rateGood: 'جيد',
       ratePoor: 'ضعيف',
+
+      qCommentsPlaceholder: 'اكتب ملاحظاتك ومقترحاتك بكل حرية لمساعدتنا في تحسين التدريب...',
       btnSubmitEvaluation: 'إرسال التقييم السري',
       btnSubmitting: 'جاري إرسال التقييم...',
-      evalSuccessTitle: 'شكراً لمشاركتك القيّمة!',
+      evalSuccessTitle: 'شكراً جزيلاً لتقييمك ومشاركتك القيّمة!',
       evalSuccessDesc: 'تم استلام تقييمك بنجاح وبسرية تامة. رأيك يساهم بشكل مباشر في تطوير البرامج التدريبية لدى الأونروا.',
       evalSuccessSub: 'UNITED NATIONS RELIEF AND WORKS AGENCY · HR TRAINING',
       toastIncomplete: 'يرجى الإجابة على جميع أسئلة التقييم الإلزامية قبل الإرسال.',
       toastSuccess: 'تم إرسال تقييمك السري بنجاح. شكراً لتعاونك!'
     },
     en: {
-      portalSubTitle: 'Anonymous Training Evaluation Form',
+      portalSubTitle: 'Learning Evaluation Form Level 1',
+      formLevelBadge: 'To be used for training less than 3 days in duration',
       cloudOnline: 'Cloud Connected',
       cloudOffline: 'Local Mode',
       evalBannerBadge: '100% Confidential & Anonymous Evaluation',
       noticeTitle: 'Full Confidentiality Notice',
-      noticeDesc: 'This evaluation is completely anonymous and does not record your name, employee number, or email. Your honest feedback directly supports training quality improvement.',
-      grpContentTitle: 'Course Content Evaluation',
-      q1Title: '1. Were the course contents clear and understandable?',
-      q2Title: '2. Was the information provided in the course useful for your job?',
-      q3Title: '3. Were the training materials (slides, notes, etc.) of high quality?',
-      grpTrainerTitle: 'Trainer Evaluation',
-      q4Title: '4. Was the instructor knowledgeable about the subject?',
-      q5Title: '5. Was the instructor helpful and willing to answer questions?',
-      q6Title: '6. Was the instructor\'s delivery method effective?',
-      grpOrgTitle: 'Course Organization',
-      q7Title: '7. Was the course well-organized? (timing, location, schedule, etc.)?',
-      q8Title: '8. Was the duration of the course appropriate to cover the topics?',
-      grpImpactTitle: 'Impact and Application',
-      q9Title: '9. Do you believe you will be able to apply what you learned in your daily work?',
-      q10Title: '10. Do you think the course will contribute to improving your job performance?',
-      grpOverallTitle: 'Overall Evaluation & Feedback',
-      q11Title: '11. What is your overall rating of the course?',
-      q12Title: '12. Do you have any suggestions for improving future courses?',
-      q12Placeholder: 'Share any suggestions or recommendations freely...',
+      noticeDesc: 'Thank you for taking the time to complete this evaluation form. Your comments and feedback are greatly appreciated and will help us to make improvements for all future programmes.',
+      grpContentTitle: '1) The Programme Objectives and Course content',
+      grpTrainerTitle: '2) The Trainer and Course Delivery',
+      grpOrgTitle: '3) Training Venue and Organization',
+      grpOverallTitle: '4) Overall Rating of the course & Comments',
+      grpImpactTitle: '5) Impact & Relevance to Job',
+
+      // Likert 5 labels
+      likert5: 'Strongly Agree',
+      likert4: 'Agree',
+      likert3: 'Neutral',
+      likert2: 'Disagree',
+      likert1: 'Strongly Disagree',
+
+      // Overall 5 labels
+      overall5: 'Excellent',
+      overall4: 'Good',
+      overall3: 'Average',
+      overall2: 'Poor',
+      overall1: 'Very poor',
+
+      // Relevance 5 labels
+      relevance5: 'Highly relevant',
+      relevance4: 'Relevant',
+      relevance3: 'Unsure',
+      relevance2: 'Partially relevant',
+      relevance1: 'Not at all',
+
+      // Perform 3 labels
+      perform3: 'Yes, it definitely will.',
+      perform2: 'Maybe, I am not sure.',
+      perform1: 'No, I don’t think so.',
+
       optYes: 'Yes',
       optSomewhat: 'Somewhat',
       optNo: 'No',
@@ -110,6 +163,8 @@
       rateVGood: 'Very good',
       rateGood: 'Good',
       ratePoor: 'Poor',
+
+      qCommentsPlaceholder: 'Please provide us with some overall comments about the course/trainer...',
       btnSubmitEvaluation: 'Submit Anonymous Evaluation',
       btnSubmitting: 'Submitting Evaluation...',
       evalSuccessTitle: 'Thank You for Your Feedback!',
@@ -190,7 +245,7 @@
   }
 
   function loadEvalQuestions() {
-    const saved = localStorage.getItem('attendtrack_eval_questions_v1');
+    const saved = localStorage.getItem('attendtrack_eval_questions_v2');
     if (saved) {
       try {
         evalQuestions = JSON.parse(saved);
@@ -199,14 +254,17 @@
       }
     } else {
       evalQuestions = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+      localStorage.setItem('attendtrack_eval_questions_v2', JSON.stringify(evalQuestions));
     }
 
     if (db) {
-      db.ref('settings/eval_questions').once('value').then(snap => {
+      db.ref('settings/eval_questions_v2').once('value').then(snap => {
         const val = snap.val();
         if (val && Array.isArray(val) && val.length > 0) {
           evalQuestions = val;
           renderDynamicQuestions();
+        } else {
+          db.ref('settings/eval_questions_v2').set(DEFAULT_QUESTIONS).catch(console.warn);
         }
       }).catch(console.warn);
     }
@@ -233,7 +291,177 @@
         const qText = (currentLang === 'ar') ? (q.textAr || q.textEn) : (q.textEn || q.textAr);
         const qNum = overallQuestionIndex++;
 
-        if (q.type === 'yes_somewhat_no') {
+        // 1. 5-point Likert Scale (Strongly Disagree=1 to Strongly Agree=5)
+        if (q.type === 'likert_5') {
+          return `
+            <div class="eval-question-item">
+              <label class="eval-q-label">
+                <span>${qNum}. ${escapeHtml(qText)}</span>
+                <span class="req">*</span>
+              </label>
+              <div class="eval-options-grid options-5">
+                <label class="eval-choice-pill eval-pill-5">
+                  <input type="radio" name="${q.id}" value="5" required>
+                  <span class="pill-text">
+                    <span class="pill-num">5</span>
+                    <span class="pill-desc">${dict.likert5}</span>
+                  </span>
+                </label>
+                <label class="eval-choice-pill eval-pill-5">
+                  <input type="radio" name="${q.id}" value="4" required>
+                  <span class="pill-text">
+                    <span class="pill-num">4</span>
+                    <span class="pill-desc">${dict.likert4}</span>
+                  </span>
+                </label>
+                <label class="eval-choice-pill eval-pill-5">
+                  <input type="radio" name="${q.id}" value="3" required>
+                  <span class="pill-text">
+                    <span class="pill-num">3</span>
+                    <span class="pill-desc">${dict.likert3}</span>
+                  </span>
+                </label>
+                <label class="eval-choice-pill eval-pill-5">
+                  <input type="radio" name="${q.id}" value="2" required>
+                  <span class="pill-text">
+                    <span class="pill-num">2</span>
+                    <span class="pill-desc">${dict.likert2}</span>
+                  </span>
+                </label>
+                <label class="eval-choice-pill eval-pill-5">
+                  <input type="radio" name="${q.id}" value="1" required>
+                  <span class="pill-text">
+                    <span class="pill-num">1</span>
+                    <span class="pill-desc">${dict.likert1}</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+          `;
+        }
+        // 2. Overall Rating (5-point: Very poor=1 to Excellent=5)
+        else if (q.type === 'overall_5') {
+          return `
+            <div class="eval-question-item">
+              <label class="eval-q-label">
+                <span>${qNum}. ${escapeHtml(qText)}</span>
+                <span class="req">*</span>
+              </label>
+              <div class="eval-options-grid options-5">
+                <label class="eval-choice-pill eval-pill-5">
+                  <input type="radio" name="${q.id}" value="5" required>
+                  <span class="pill-text">
+                    <span class="pill-num">5</span>
+                    <span class="pill-desc">${dict.overall5}</span>
+                  </span>
+                </label>
+                <label class="eval-choice-pill eval-pill-5">
+                  <input type="radio" name="${q.id}" value="4" required>
+                  <span class="pill-text">
+                    <span class="pill-num">4</span>
+                    <span class="pill-desc">${dict.overall4}</span>
+                  </span>
+                </label>
+                <label class="eval-choice-pill eval-pill-5">
+                  <input type="radio" name="${q.id}" value="3" required>
+                  <span class="pill-text">
+                    <span class="pill-num">3</span>
+                    <span class="pill-desc">${dict.overall3}</span>
+                  </span>
+                </label>
+                <label class="eval-choice-pill eval-pill-5">
+                  <input type="radio" name="${q.id}" value="2" required>
+                  <span class="pill-text">
+                    <span class="pill-num">2</span>
+                    <span class="pill-desc">${dict.overall2}</span>
+                  </span>
+                </label>
+                <label class="eval-choice-pill eval-pill-5">
+                  <input type="radio" name="${q.id}" value="1" required>
+                  <span class="pill-text">
+                    <span class="pill-num">1</span>
+                    <span class="pill-desc">${dict.overall1}</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+          `;
+        }
+        // 3. Relevance to Job (1: Not at all to 5: Highly relevant)
+        else if (q.type === 'relevance_5') {
+          return `
+            <div class="eval-question-item">
+              <label class="eval-q-label">
+                <span>${qNum}. ${escapeHtml(qText)}</span>
+                <span class="req">*</span>
+              </label>
+              <div class="eval-options-grid options-5">
+                <label class="eval-choice-pill eval-pill-5">
+                  <input type="radio" name="${q.id}" value="5" required>
+                  <span class="pill-text">
+                    <span class="pill-num">5</span>
+                    <span class="pill-desc">${dict.relevance5}</span>
+                  </span>
+                </label>
+                <label class="eval-choice-pill eval-pill-5">
+                  <input type="radio" name="${q.id}" value="4" required>
+                  <span class="pill-text">
+                    <span class="pill-num">4</span>
+                    <span class="pill-desc">${dict.relevance4}</span>
+                  </span>
+                </label>
+                <label class="eval-choice-pill eval-pill-5">
+                  <input type="radio" name="${q.id}" value="3" required>
+                  <span class="pill-text">
+                    <span class="pill-num">3</span>
+                    <span class="pill-desc">${dict.relevance3}</span>
+                  </span>
+                </label>
+                <label class="eval-choice-pill eval-pill-5">
+                  <input type="radio" name="${q.id}" value="2" required>
+                  <span class="pill-text">
+                    <span class="pill-num">2</span>
+                    <span class="pill-desc">${dict.relevance2}</span>
+                  </span>
+                </label>
+                <label class="eval-choice-pill eval-pill-5">
+                  <input type="radio" name="${q.id}" value="1" required>
+                  <span class="pill-text">
+                    <span class="pill-num">1</span>
+                    <span class="pill-desc">${dict.relevance1}</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+          `;
+        }
+        // 4. Performance Better (3 options: Yes definitely, Maybe, No)
+        else if (q.type === 'perform_3') {
+          return `
+            <div class="eval-question-item">
+              <label class="eval-q-label">
+                <span>${qNum}. ${escapeHtml(qText)}</span>
+                <span class="req">*</span>
+              </label>
+              <div class="eval-options-grid options-3">
+                <label class="eval-choice-pill">
+                  <input type="radio" name="${q.id}" value="Yes" required>
+                  <span class="pill-text">${dict.perform3}</span>
+                </label>
+                <label class="eval-choice-pill">
+                  <input type="radio" name="${q.id}" value="Maybe" required>
+                  <span class="pill-text">${dict.perform2}</span>
+                </label>
+                <label class="eval-choice-pill">
+                  <input type="radio" name="${q.id}" value="No" required>
+                  <span class="pill-text">${dict.perform1}</span>
+                </label>
+              </div>
+            </div>
+          `;
+        }
+        // 5. Traditional Yes / Somewhat / No
+        else if (q.type === 'yes_somewhat_no') {
           return `
             <div class="eval-question-item">
               <label class="eval-q-label">
@@ -256,7 +484,9 @@
               </div>
             </div>
           `;
-        } else if (q.type === 'yes_no') {
+        }
+        // 6. Yes / No
+        else if (q.type === 'yes_no') {
           return `
             <div class="eval-question-item">
               <label class="eval-q-label">
@@ -275,7 +505,9 @@
               </div>
             </div>
           `;
-        } else if (q.type === 'rating_4') {
+        }
+        // 7. Rating 4
+        else if (q.type === 'rating_4') {
           return `
             <div class="eval-question-item">
               <label class="eval-q-label">
@@ -302,13 +534,15 @@
               </div>
             </div>
           `;
-        } else {
+        }
+        // 8. Free Text
+        else {
           return `
             <div class="eval-question-item">
               <label class="eval-q-label" for="${q.id}">
                 <span>${qNum}. ${escapeHtml(qText)}</span>
               </label>
-              <textarea id="${q.id}" name="${q.id}" class="form-input eval-textarea" rows="3" placeholder="${dict.q12Placeholder}"></textarea>
+              <textarea id="${q.id}" name="${q.id}" class="form-input eval-textarea" rows="3" placeholder="${dict.qCommentsPlaceholder}"></textarea>
             </div>
           `;
         }
@@ -336,6 +570,7 @@
     if (tr) sessionData.trainer = decodeURIComponent(tr);
     if (d) sessionData.date = decodeURIComponent(d);
     if (t) sessionData.time = decodeURIComponent(t);
+
     if (sid) {
       sessionData.sessionId = decodeURIComponent(sid);
     } else if (c) {
@@ -418,67 +653,81 @@
       location: sessionData.location,
       date: sessionData.date,
       timestamp: now.toISOString(),
-      displayTime: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      ratings: ratings,
-      ...ratings // for direct access
+      ratings: ratings
     };
 
-    // 1. Send to Firebase RTDB under sessions/{sessionId}/evaluations
-    if (db) {
-      try {
-        const evalRef = db.ref('sessions/' + sessionData.sessionId + '/evaluations');
-        const pushPromise = evalRef.push(evalRecord);
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase timeout')), 3500));
-        await Promise.race([pushPromise, timeoutPromise]);
-      } catch (err) {
-        console.warn('Firebase error/timeout in evaluation submission:', err);
-      }
-    }
-
-    // 2. Local Backup
     try {
-      const localEvals = JSON.parse(localStorage.getItem('attendtrack_local_evaluations_v1') || '[]');
-      localEvals.push(evalRecord);
+      // 1. Save to Firebase Realtime Database
+      if (db) {
+        const evalRef = db.ref('sessions/' + sessionData.sessionId + '/evaluations').push();
+        await evalRef.set(evalRecord);
+      }
+
+      // 2. Local Storage Fallback
+      let localEvals = [];
+      try {
+        const stored = localStorage.getItem('attendtrack_local_evaluations_v1');
+        if (stored) localEvals = JSON.parse(stored);
+      } catch (e) {
+        localEvals = [];
+      }
+      localEvals.unshift(evalRecord);
       localStorage.setItem('attendtrack_local_evaluations_v1', JSON.stringify(localEvals));
-    } catch (e) {
-      console.warn(e);
+
+      // 3. Trigger celebration confetti if available
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      }
+
+      // 4. Show Success Screen
+      document.getElementById('sessionHeaderCard').classList.add('hidden');
+      document.querySelector('.eval-notice-box').classList.add('hidden');
+      document.getElementById('evalFormCard').classList.add('hidden');
+      document.getElementById('evalSuccessCard').classList.remove('hidden');
+
+      showToast(dict.toastSuccess, 'success');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    } catch (err) {
+      console.error('Error submitting evaluation:', err);
+      showToast(dict.toastSuccess, 'success');
+      document.getElementById('evalFormCard').classList.add('hidden');
+      document.getElementById('evalSuccessCard').classList.remove('hidden');
     }
-
-    // Show Success Screen
-    const formCard = document.getElementById('evalFormCard');
-    const successCard = document.getElementById('evalSuccessCard');
-    if (formCard) formCard.classList.add('hidden');
-    if (successCard) successCard.classList.remove('hidden');
-
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    showToast(dict.toastSuccess, 'success');
   }
 
-  // Toast Function
   function showToast(msg, type = 'info') {
     const container = document.getElementById('toastContainer');
     if (!container) return;
+
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
-    toast.innerHTML = `
-      <i class="fa-solid ${type === 'success' ? 'fa-circle-check' : type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-info'}"></i>
-      <span>${msg}</span>
-    `;
+    toast.textContent = msg;
     container.appendChild(toast);
+
     setTimeout(() => {
-      toast.classList.add('fade-out');
-      setTimeout(() => toast.remove(), 400);
+      toast.classList.add('toast-show');
+    }, 10);
+
+    setTimeout(() => {
+      toast.classList.remove('toast-show');
+      setTimeout(() => toast.remove(), 300);
     }, 4000);
   }
 
-  // Initialize Page
+  // 7. Initialization
   document.addEventListener('DOMContentLoaded', () => {
     initSessionFromUrl();
     loadEvalQuestions();
+    applyLanguage(currentLang);
 
-    const btnLang = document.getElementById('langToggleBtn');
-    if (btnLang) {
-      btnLang.addEventListener('click', () => {
+    const langBtn = document.getElementById('langToggleBtn');
+    if (langBtn) {
+      langBtn.addEventListener('click', () => {
         applyLanguage(currentLang === 'ar' ? 'en' : 'ar');
       });
     }
@@ -487,8 +736,6 @@
     if (btnSubmit) {
       btnSubmit.addEventListener('click', handleSubmitEvaluation);
     }
-
-    applyLanguage(currentLang);
   });
 
 })();

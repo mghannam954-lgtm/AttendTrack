@@ -450,16 +450,20 @@
             <div>
               <label class="qm-label" data-i18n="qmSecLabel">قسم التقييم:</label>
               <select id="qmNewSection" class="form-input form-input-sm">
-                <option value="1">1. تقييم محتوى التدريب</option>
-                <option value="2">2. تقييم أداء المدرب</option>
-                <option value="3">3. تنظيم وإدارة الدورة</option>
-                <option value="4">4. الأثر والتطبيق العملي</option>
-                <option value="5">5. التقييم الشامل والمقترحات</option>
+                <option value="1">1. أهداف البرنامج ومحتوى الدورة</option>
+                <option value="2">2. المدرب/ة وتقديم الدورة</option>
+                <option value="3">3. مكان التدريب والتنظيم</option>
+                <option value="4">4. التقييم الإجمالي والملاحظات</option>
+                <option value="5">5. الأثر والارتباط بالعمل</option>
               </select>
             </div>
             <div>
               <label class="qm-label" data-i18n="qmTypeLabel">نوع الإجابة:</label>
               <select id="qmNewType" class="form-input form-input-sm">
+                <option value="likert_5">مقياس ليكرت خماسي: غير موافق بشدة إلى موافق بشدة (1-5)</option>
+                <option value="overall_5">تقييم إجمالي خماسي: ضعيف جداً إلى ممتاز (1-5)</option>
+                <option value="relevance_5">ارتباط بالوظيفة: لا صلة إلى وثيق الصلة (1-5)</option>
+                <option value="perform_3">أثر الأداء: نعم بالتأكيد / ربما / لا</option>
                 <option value="yes_somewhat_no">خيارات: نعم / إلى حد ما / لا</option>
                 <option value="yes_no">خيارات: نعم / لا</option>
                 <option value="rating_4">تقييم: ممتاز / جيد جداً / جيد / ضعيف</option>
@@ -482,10 +486,10 @@
         <div class="qm-list-header">
           <div class="qm-list-title-wrap">
             <h4 class="qm-list-title" data-i18n="qmListTitle">الأسئلة الحالية في الاستمارة</h4>
-            <span class="qm-count-pill"><span id="qmActiveCount">12</span> سؤال مفعّل</span>
+            <span class="qm-count-pill"><span id="qmActiveCount">21</span> سؤال مفعّل</span>
           </div>
           <button type="button" id="btnResetDefaultQuestions" class="btn btn-danger-outline btn-sm" title="العودة للقالب القياسي الرسمي">
-            <i class="fa-solid fa-rotate-left"></i> <span data-i18n="qmBtnReset">استعادة القالب الرسمي (12 سؤال)</span>
+            <i class="fa-solid fa-rotate-left"></i> <span data-i18n="qmBtnReset">استعادة القالب الرسمي (21 سؤال)</span>
           </button>
         </div>
 

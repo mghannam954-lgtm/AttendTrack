@@ -2,31 +2,30 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AttendTrack - تقييم التدريب السري · UNRWA HR</title>
-  <meta name="description" content="Official anonymous training evaluation form for UNRWA HR Staff Development & Training.">
-  
-  <link rel="icon" type="image/png" href="unrwa-logo.png">
-  <link rel="apple-touch-icon" href="unrwa-logo.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>استمارة تقييم التدريب السرية · UNRWA HR</title>
 
-  <!-- Google Fonts -->
+  <!-- Google Fonts: Inter & Cairo -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  
-  <!-- FontAwesome Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- FontAwesome Icons 6.5.1 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  
-  <!-- Core Stylesheet -->
+
+  <!-- Core Design System CSS -->
   <link rel="stylesheet" href="style.css">
 
-  <!-- Firebase App & Realtime Database SDKs (Compat) -->
+  <!-- Canvas Confetti for Completion Celebration -->
+  <script src="lib/confetti.browser.min.js"></script>
+
+  <!-- Firebase App & Realtime Database CDN (v9.23.0 Compat) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
-<body class="eval-standalone-page">
+<body class="trainee-checkin-page">
 
-  <!-- Top Global Header -->
+  <!-- Top Institutional Header -->
   <header class="app-header">
     <div class="header-container">
       <div class="brand-group">
@@ -35,7 +34,7 @@
         </div>
         <div class="brand-text">
           <span class="brand-title">AttendTrack · UNRWA HR</span>
-          <span class="brand-subtitle" id="portalSubTitle" data-i18n="portalSubTitle">استمارة تقييم التدريب السرية</span>
+          <span class="brand-subtitle" id="portalSubTitle" data-i18n="portalSubTitle">استمارة تقييم التدريب - المستوى الأول</span>
         </div>
       </div>
 
@@ -70,6 +69,9 @@
           <span class="meta-pill"><i class="fa-solid fa-user-tie"></i> <span id="evalTrainerHeader">--</span></span>
           <span class="meta-pill"><i class="fa-solid fa-calendar-check"></i> <span id="evalDateHeader">--</span></span>
         </div>
+        <div style="margin-top: 8px;">
+          <small style="color: #64748b; font-size: 0.82rem; font-weight: 600;" data-i18n="formLevelBadge">للدورات التدريبية التي تقل مدتها عن 3 أيام</small>
+        </div>
       </div>
 
       <!-- Anonymous Notice Banner -->
@@ -79,7 +81,7 @@
         </div>
         <div>
           <h4 data-i18n="noticeTitle">ملاحظة السرية التامة</h4>
-          <p data-i18n="noticeDesc">هذا التقييم مجهول الهوية تماماً ولا يسجل اسمك أو رقمك الوظيفي أو بريدك. إجاباتك تساعدنا على تحسين وتطوير جودة البرامج التدريبية المستقبلية.</p>
+          <p data-i18n="noticeDesc">نشكر لك تخصيص وقتك لملء هذه الاستمارة. إجاباتك وملاحظاتك مجهولة الهوية تماماً، وتساعدنا على تطوير وتحسين كافة البرامج التدريبية المستقبلية.</p>
         </div>
       </div>
 
@@ -88,299 +90,67 @@
         <form id="evalForm" onsubmit="return false;" novalidate>
 
           <!-- ========================================== -->
-          <!-- GROUP 1: تقييم محتوى الدورة                -->
+          <!-- GROUP 1: أهداف البرنامج ومحتوى الدورة      -->
           <!-- ========================================== -->
           <div class="eval-section-group" id="evalGroupSec1">
             <div class="eval-group-header">
               <span class="eval-group-tag">1</span>
-              <h3 data-i18n="grpContentTitle">تقييم محتوى التدريب (Course Content)</h3>
+              <h3 data-i18n="grpContentTitle">1) أهداف البرنامج التدريبي ومحتوى الدورة (The Programme Objectives and Course Content)</h3>
             </div>
             <div id="groupContainerSec1" class="eval-questions-list">
-              <!-- Q1 -->
-              <div class="eval-question-item">
-                <label class="eval-q-label">
-                  <span data-i18n="q1Title">1. هل كانت محتويات الدورة واضحة ومفهومة؟</span>
-                  <span class="req">*</span>
-                </label>
-                <div class="eval-options-grid options-3">
-                  <label class="eval-choice-pill">
-                    <input type="radio" name="q1" value="Yes" required>
-                    <span class="pill-text" data-i18n="optYes">نعم</span>
-                  </label>
-                  <label class="eval-choice-pill">
-                    <input type="radio" name="q1" value="Somewhat" required>
-                    <span class="pill-text" data-i18n="optSomewhat">إلى حد ما</span>
-                  </label>
-                  <label class="eval-choice-pill">
-                    <input type="radio" name="q1" value="No" required>
-                    <span class="pill-text" data-i18n="optNo">لا</span>
-                  </label>
-                </div>
-              </div>
-
-              <!-- Q2 -->
-              <div class="eval-question-item">
-                <label class="eval-q-label">
-                  <span data-i18n="q2Title">2. هل كانت المعلومات المقدمة في الدورة مفيدة لعملك؟</span>
-                  <span class="req">*</span>
-                </label>
-                <div class="eval-options-grid options-3">
-                  <label class="eval-choice-pill">
-                    <input type="radio" name="q2" value="Yes" required>
-                    <span class="pill-text" data-i18n="optYes">نعم</span>
-                  </label>
-                  <label class="eval-choice-pill">
-                    <input type="radio" name="q2" value="Somewhat" required>
-                    <span class="pill-text" data-i18n="optSomewhat">إلى حد ما</span>
-                  </label>
-                  <label class="eval-choice-pill">
-                    <input type="radio" name="q2" value="No" required>
-                    <span class="pill-text" data-i18n="optNo">لا</span>
-                  </label>
-                </div>
-              </div>
-
-              <!-- Q3 -->
-              <div class="eval-question-item">
-                <label class="eval-q-label">
-                  <span data-i18n="q3Title">3. هل كانت مواد التدريب (العروض التقديمية، الملاحظات، إلخ) ذات جودة عالية؟</span>
-                  <span class="req">*</span>
-                </label>
-                <div class="eval-options-grid options-3">
-                  <label class="eval-choice-pill">
-                    <input type="radio" name="q3" value="Yes" required>
-                    <span class="pill-text" data-i18n="optYes">نعم</span>
-                  </label>
-                  <label class="eval-choice-pill">
-                    <input type="radio" name="q3" value="Somewhat" required>
-                    <span class="pill-text" data-i18n="optSomewhat">إلى حد ما</span>
-                  </label>
-                  <label class="eval-choice-pill">
-                    <input type="radio" name="q3" value="No" required>
-                    <span class="pill-text" data-i18n="optNo">لا</span>
-                  </label>
-                </div>
-              </div>
+              <!-- Dynamically populated by eval.js -->
             </div>
           </div>
 
           <!-- ========================================== -->
-          <!-- GROUP 2: تقييم المدرب                     -->
+          <!-- GROUP 2: المدرب/ة وتقديم الدورة             -->
           <!-- ========================================== -->
           <div class="eval-section-group" id="evalGroupSec2">
             <div class="eval-group-header">
               <span class="eval-group-tag">2</span>
-              <h3 data-i18n="grpTrainerTitle">تقييم المدرب (Trainer Evaluation)</h3>
+              <h3 data-i18n="grpTrainerTitle">2) المدرب/ة وتقديم الدورة (The Trainer and Course Delivery)</h3>
             </div>
             <div id="groupContainerSec2" class="eval-questions-list">
-              <!-- Q4 -->
-              <div class="eval-question-item">
-                <label class="eval-q-label">
-                  <span data-i18n="q4Title">4. هل كان المدرب على دراية بالموضوع؟</span>
-                  <span class="req">*</span>
-                </label>
-                <div class="eval-options-grid options-3">
-                  <label class="eval-choice-pill">
-                    <input type="radio" name="q4" value="Yes" required>
-                    <span class="pill-text" data-i18n="optYes">نعم</span>
-                  </label>
-                  <label class="eval-choice-pill">
-                    <input type="radio" name="q4" value="Somewhat" required>
-                    <span class="pill-text" data-i18n="optSomewhat">إلى حد ما</span>
-                  </label>
-                  <label class="eval-choice-pill">
-                    <input type="radio" name="q4" value="No" required>
-                    <span class="pill-text" data-i18n="optNo">لا</span>
-                  </label>
-                </div>
-              </div>
-
-              <!-- Q5 -->
-              <div class="eval-question-item">
-                <label class="eval-q-label">
-                  <span data-i18n="q5Title">5. هل كان المدرب مفيداً ومستعداً للإجابة على الأسئلة؟</span>
-                  <span class="req">*</span>
-                </label>
-                <div class="eval-options-grid options-2">
-                  <label class="eval-choice-pill">
-                    <input type="radio" name="q5" value="Yes" required>
-                    <span class="pill-text" data-i18n="optYes">نعم</span>
-                  </label>
-                  <label class="eval-choice-pill">
-                    <input type="radio" name="q5" value="No" required>
-                    <span class="pill-text" data-i18n="optNo">لا</span>
-                  </label>
-                </div>
-              </div>
-
-              <!-- Q6 -->
-              <div class="eval-question-item">
-                <label class="eval-q-label">
-                  <span data-i18n="q6Title">6. هل كانت طريقة تقديم المدرب فعالة؟</span>
-                  <span class="req">*</span>
-                </label>
-                <div class="eval-options-grid options-2">
-                  <label class="eval-choice-pill">
-                    <input type="radio" name="q6" value="Yes" required>
-                    <span class="pill-text" data-i18n="optYes">نعم</span>
-                  </label>
-                  <label class="eval-choice-pill">
-                    <input type="radio" name="q6" value="No" required>
-                    <span class="pill-text" data-i18n="optNo">لا</span>
-                  </label>
-                </div>
-              </div>
+              <!-- Dynamically populated by eval.js -->
             </div>
           </div>
 
           <!-- ========================================== -->
-          <!-- GROUP 3: تنظيم الدورة                      -->
+          <!-- GROUP 3: مكان التدريب والتنظيم              -->
           <!-- ========================================== -->
           <div class="eval-section-group" id="evalGroupSec3">
             <div class="eval-group-header">
               <span class="eval-group-tag">3</span>
-              <h3 data-i18n="grpOrgTitle">تنظيم الدورة والجدول الزمني (Course Organization)</h3>
+              <h3 data-i18n="grpOrgTitle">3) مكان التدريب والتنظيم (Training Venue and Organization)</h3>
             </div>
             <div id="groupContainerSec3" class="eval-questions-list">
-              <!-- Q7 -->
-              <div class="eval-question-item">
-                <label class="eval-q-label">
-                  <span data-i18n="q7Title">7. هل كانت الدورة منظمة جيداً؟ (الوقت، المكان، الجدول الزمني، إلخ)؟</span>
-                  <span class="req">*</span>
-                </label>
-                <div class="eval-options-grid options-3">
-                  <label class="eval-choice-pill">
-                    <input type="radio" name="q7" value="Yes" required>
-                    <span class="pill-text" data-i18n="optYes">نعم</span>
-                  </label>
-                  <label class="eval-choice-pill">
-                    <input type="radio" name="q7" value="Somewhat" required>
-                    <span class="pill-text" data-i18n="optSomewhat">إلى حد ما</span>
-                  </label>
-                  <label class="eval-choice-pill">
-                    <input type="radio" name="q7" value="No" required>
-                    <span class="pill-text" data-i18n="optNo">لا</span>
-                  </label>
-                </div>
-              </div>
-
-              <!-- Q8 -->
-              <div class="eval-question-item">
-                <label class="eval-q-label">
-                  <span data-i18n="q8Title">8. هل كانت مدة الدورة مناسبة لتغطية المواضيع؟</span>
-                  <span class="req">*</span>
-                </label>
-                <div class="eval-options-grid options-2">
-                  <label class="eval-choice-pill">
-                    <input type="radio" name="q8" value="Yes" required>
-                    <span class="pill-text" data-i18n="optYes">نعم</span>
-                  </label>
-                  <label class="eval-choice-pill">
-                    <input type="radio" name="q8" value="No" required>
-                    <span class="pill-text" data-i18n="optNo">لا</span>
-                  </label>
-                </div>
-              </div>
+              <!-- Dynamically populated by eval.js -->
             </div>
           </div>
 
           <!-- ========================================== -->
-          <!-- GROUP 4: الأثر والتطبيق العملي            -->
+          <!-- GROUP 4: التقييم الإجمالي والملاحظات        -->
           <!-- ========================================== -->
           <div class="eval-section-group" id="evalGroupSec4">
             <div class="eval-group-header">
               <span class="eval-group-tag">4</span>
-              <h3 data-i18n="grpImpactTitle">الأثر والتطبيق في العمل (Impact and Application)</h3>
+              <h3 data-i18n="grpOverallTitle">4) التقييم الإجمالي للدورة والملاحظات (Overall Rating of the Course & Comments)</h3>
             </div>
             <div id="groupContainerSec4" class="eval-questions-list">
-              <!-- Q9 -->
-              <div class="eval-question-item">
-                <label class="eval-q-label">
-                  <span data-i18n="q9Title">9. هل تعتقد أنك ستكون قادراً على تطبيق ما تعلمته في عملك اليومي؟</span>
-                  <span class="req">*</span>
-                </label>
-                <div class="eval-options-grid options-2">
-                  <label class="eval-choice-pill">
-                    <input type="radio" name="q9" value="Yes" required>
-                    <span class="pill-text" data-i18n="optYes">نعم</span>
-                  </label>
-                  <label class="eval-choice-pill">
-                    <input type="radio" name="q9" value="No" required>
-                    <span class="pill-text" data-i18n="optNo">لا</span>
-                  </label>
-                </div>
-              </div>
-
-              <!-- Q10 -->
-              <div class="eval-question-item">
-                <label class="eval-q-label">
-                  <span data-i18n="q10Title">10. هل تعتقد أن الدورة ستساهم في تحسين أدائك في العمل؟</span>
-                  <span class="req">*</span>
-                </label>
-                <div class="eval-options-grid options-2">
-                  <label class="eval-choice-pill">
-                    <input type="radio" name="q10" value="Yes" required>
-                    <span class="pill-text" data-i18n="optYes">نعم</span>
-                  </label>
-                  <label class="eval-choice-pill">
-                    <input type="radio" name="q10" value="No" required>
-                    <span class="pill-text" data-i18n="optNo">لا</span>
-                  </label>
-                </div>
-              </div>
+              <!-- Dynamically populated by eval.js -->
             </div>
           </div>
 
           <!-- ========================================== -->
-          <!-- GROUP 5: التقييم العام والمقترحات         -->
+          <!-- GROUP 5: الأثر والارتباط بالعمل             -->
           <!-- ========================================== -->
           <div class="eval-section-group" id="evalGroupSec5">
             <div class="eval-group-header">
               <span class="eval-group-tag">5</span>
-              <h3 data-i18n="grpOverallTitle">التقييم العام والمقترحات (Overall Evaluation & Feedback)</h3>
+              <h3 data-i18n="grpImpactTitle">5) الأثر والارتباط بالعمل (Impact & Relevance to Job)</h3>
             </div>
             <div id="groupContainerSec5" class="eval-questions-list">
-              <!-- Q11 -->
-              <div class="eval-question-item">
-                <label class="eval-q-label">
-                  <span data-i18n="q11Title">11. ما تقييمك العام للدورة؟</span>
-                  <span class="req">*</span>
-                </label>
-                <div class="eval-rating-grid">
-                  <label class="eval-rating-card rating-excellent">
-                    <input type="radio" name="q11" value="Excellent" required>
-                    <div class="rating-box">
-                      <span class="rating-text" data-i18n="rateExcellent">ممتاز</span>
-                    </div>
-                  </label>
-                  <label class="eval-rating-card rating-vgood">
-                    <input type="radio" name="q11" value="Very good" required>
-                    <div class="rating-box">
-                      <span class="rating-text" data-i18n="rateVGood">جيد جداً</span>
-                    </div>
-                  </label>
-                  <label class="eval-rating-card rating-good">
-                    <input type="radio" name="q11" value="Good" required>
-                    <div class="rating-box">
-                      <span class="rating-text" data-i18n="rateGood">جيد</span>
-                    </div>
-                  </label>
-                  <label class="eval-rating-card rating-poor">
-                    <input type="radio" name="q11" value="Poor" required>
-                    <div class="rating-box">
-                      <span class="rating-text" data-i18n="ratePoor">ضعيف</span>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              <!-- Q12 -->
-              <div class="eval-question-item">
-                <label class="eval-q-label" for="q12Input">
-                  <span data-i18n="q12Title">12. هل لديك أي اقتراحات لتحسين الدورات المستقبلية؟</span>
-                </label>
-                <textarea id="q12Input" class="form-input eval-textarea" rows="3" data-i18n-ph="q12Placeholder" placeholder="اكتب ملاحظاتك ومقترحاتك بكل حرية..."></textarea>
-              </div>
+              <!-- Dynamically populated by eval.js -->
             </div>
           </div>
 
@@ -398,7 +168,7 @@
         <div class="success-icon-badge">
           <i class="fa-solid fa-check"></i>
         </div>
-        <h2 data-i18n="evalSuccessTitle">شكراً لمشاركتك القيّمة!</h2>
+        <h2 data-i18n="evalSuccessTitle">شكراً جزيلاً لتقييمك ومشاركتك القيّمة!</h2>
         <p data-i18n="evalSuccessDesc">تم استلام تقييمك بنجاح وبسرية تامة. رأيك يساهم بشكل مباشر في تطوير البرامج التدريبية لدى الأونروا.</p>
         
         <div class="receipt-box" style="margin-top: 1.5rem; text-align: center;">
@@ -411,7 +181,7 @@
   </main>
 
   <footer class="app-footer text-center" style="padding: 20px 10px; color: var(--text-muted); font-size: 0.82rem;">
-    <p>United Nations Relief and Works Agency (UNRWA) · Staff Development & Training Division</p>
+    <p>United Nations Relief and Works Agency (UNRWA) · Staff Development & Training Division · Damascus Headquarters</p>
   </footer>
 
   <!-- Toast Container -->

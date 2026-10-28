@@ -17,19 +17,38 @@
   let isInitialFirebaseLoad = true;
   let currentQrMode = 'attendance'; // 'attendance' | 'evaluation'
 
+  // Official UNRWA Level 1 Evaluation Template (21 Questions from FinalEvaluationForm (Arb-Eng).docx)
   const DEFAULT_EVAL_QUESTIONS = [
-    { id: 'q1', section: 1, type: 'yes_somewhat_no', textAr: 'هل كانت محتويات الدورة واضحة ومفهومة؟', textEn: 'Were the course contents clear and understandable?', enabled: true },
-    { id: 'q2', section: 1, type: 'yes_somewhat_no', textAr: 'هل كانت المعلومات المقدمة في الدورة مفيدة لعملك؟', textEn: 'Was the information provided in the course useful for your job?', enabled: true },
-    { id: 'q3', section: 1, type: 'yes_somewhat_no', textAr: 'هل كانت مواد التدريب (العروض التقديمية، الملاحظات، إلخ) ذات جودة عالية؟', textEn: 'Were the training materials (slides, notes, etc.) of high quality?', enabled: true },
-    { id: 'q4', section: 2, type: 'yes_somewhat_no', textAr: 'هل كان المدرب على دراية بالموضوع؟', textEn: 'Was the instructor knowledgeable about the subject?', enabled: true },
-    { id: 'q5', section: 2, type: 'yes_no', textAr: 'هل كان المدرب مفيداً ومستعداً للإجابة على الأسئلة؟', textEn: 'Was the instructor helpful and willing to answer questions?', enabled: true },
-    { id: 'q6', section: 2, type: 'yes_no', textAr: 'هل كانت طريقة تقديم المدرب فعالة؟', textEn: 'Was the instructor\'s delivery method effective?', enabled: true },
-    { id: 'q7', section: 3, type: 'yes_somewhat_no', textAr: 'هل كانت الدورة منظمة جيداً؟ (الوقت، المكان، الجدول الزمني، إلخ)؟', textEn: 'Was the course well-organized? (timing, location, schedule, etc.)?', enabled: true },
-    { id: 'q8', section: 3, type: 'yes_no', textAr: 'هل كانت مدة الدورة مناسبة لتغطية المواضيع؟', textEn: 'Was the duration of the course appropriate to cover the topics?', enabled: true },
-    { id: 'q9', section: 4, type: 'yes_no', textAr: 'هل تعتقد أنك ستكون قادراً على تطبيق ما تعلمته في عملك اليومي؟', textEn: 'Do you believe you will be able to apply what you learned in your daily work?', enabled: true },
-    { id: 'q10', section: 4, type: 'yes_no', textAr: 'هل تعتقد أن الدورة ستساهم في تحسين أدائك في العمل؟', textEn: 'Did the training contribute to improving your skills and performance?', enabled: true },
-    { id: 'q11', section: 5, type: 'rating_4', textAr: 'ما تقييمك العام للدورة التدريبية ككل؟', textEn: 'What is your overall rating of the course?', enabled: true },
-    { id: 'q12', section: 5, type: 'text', textAr: 'هل لديك أي اقتراحات أو ملاحظات لتحسين وتطوير التدريب؟', textEn: 'Do you have any suggestions or comments to improve training?', enabled: true }
+    // Section 1: The Programme Objectives and Course content (1 - 5)
+    { id: 'q1', section: 1, type: 'likert_5', textAr: 'أهداف البرنامج التدريبي كانت واضحة', textEn: 'The programme objectives were clear.', enabled: true },
+    { id: 'q2', section: 1, type: 'likert_5', textAr: 'محتوى البرنامج التدريبي والأنشطة ذات صلة بأهداف البرنامج التدريبي', textEn: 'The programme content and activities were relevant to the programme objectives.', enabled: true },
+    { id: 'q3', section: 1, type: 'likert_5', textAr: 'مدة البرنامج التدريبي مناسبة', textEn: 'The length of the programme was adequate.', enabled: true },
+    { id: 'q4', section: 1, type: 'likert_5', textAr: 'الأمثلة والنقاشات والأنشطة المطروحة ذات صلة بعملي', textEn: 'The examples, discussions and activities were relevant to my job.', enabled: true },
+    { id: 'q5', section: 1, type: 'likert_5', textAr: 'المادة التدريبية واضحة ومهنية', textEn: 'The materials were clear and professional.', enabled: true },
+
+    // Section 2: The Trainer and Course Delivery (6 - 14)
+    { id: 'q6', section: 2, type: 'likert_5', textAr: 'حدد نتائج التدريب وأهدافه التعليمية', textEn: 'The trainer stated the learning outcomes.', enabled: true },
+    { id: 'q7', section: 2, type: 'likert_5', textAr: 'محضر ومنظم بشكل جيد', textEn: 'The trainer was well organized and prepared.', enabled: true },
+    { id: 'q8', section: 2, type: 'likert_5', textAr: 'خلق جو تعلم إيجابي ومحفز', textEn: 'The trainer created a positive learning atmosphere.', enabled: true },
+    { id: 'q9', section: 2, type: 'likert_5', textAr: 'أظهر خبرة وتمكناً بالمادة التدريبية', textEn: 'The trainer showed expertise in the subject.', enabled: true },
+    { id: 'q10', section: 2, type: 'likert_5', textAr: 'قدم المادة التدريبية بطريقة منطقية وسلسة', textEn: 'The trainer presented the material in a logical way.', enabled: true },
+    { id: 'q11', section: 2, type: 'likert_5', textAr: 'سأل وأجاب عن الأسئلة بشكل كامل ومتمكن', textEn: 'The trainer asked and answered questions competently.', enabled: true },
+    { id: 'q12', section: 2, type: 'likert_5', textAr: 'قادر على إدارة الجلسة وتعامل مع المتدربين بمساواة واحترام', textEn: 'The trainer was able to control the session and deal with participants fairly, and with respect.', enabled: true },
+    { id: 'q13', section: 2, type: 'likert_5', textAr: 'ممتعاً ومحفزاً للمشاركين', textEn: 'The trainer was interesting and motivated me.', enabled: true },
+    { id: 'q14', section: 2, type: 'likert_5', textAr: 'أداء المدرب كان ممتازاً بشكل عام', textEn: 'The trainer was excellent.', enabled: true },
+
+    // Section 3: Training Venue and Organization (15 - 17)
+    { id: 'q15', section: 3, type: 'likert_5', textAr: 'هل تلقيت إشعاراً عن التدريب بوقت كافٍ؟', textEn: 'Did you receive sufficient notice about this training?', enabled: true },
+    { id: 'q16', section: 3, type: 'likert_5', textAr: 'هل تلقيت الدعم الكافي لحضور التدريب؟', textEn: 'Did you receive sufficient support to attend this training?', enabled: true },
+    { id: 'q17', section: 3, type: 'likert_5', textAr: 'مكان التدريب كان مريحاً ومناسباً', textEn: 'Was the training venue comfortable?', enabled: true },
+
+    // Section 4: Overall Rating of the course (18 - 19)
+    { id: 'q18', section: 4, type: 'overall_5', textAr: 'تقييم التدريب بشكل إجمالي', textEn: 'Overall Rating of the course', enabled: true },
+    { id: 'q19', section: 4, type: 'text', textAr: 'يرجى تزويدنا بأي ملاحظات أو مقترحات عامة حول الدورة أو المدرب:', textEn: 'Please provide us with some overall comments about the course/trainer:', enabled: true },
+
+    // Section 5: Impact & Relevance to Job (20 - 21)
+    { id: 'q20', section: 5, type: 'relevance_5', textAr: 'هل كان هذا التدريب ذا صلة بعملك ودورك الوظيفي الحالي؟', textEn: 'Was this training relevant to your current job role?', enabled: true },
+    { id: 'q21', section: 5, type: 'perform_3', textAr: 'هل سيساعدك التدريب على الأداء بشكل أفضل في منصبك الحالي؟', textEn: 'Will this training help you to perform better in your current position?', enabled: true }
   ];
 
   let evalQuestions = [];
@@ -224,11 +243,11 @@
       qmTextLabel: 'Question Text (Arabic / English):',
       qmBtnAdd: 'Add Question',
       qmListTitle: 'Current Form Questions',
-      qmBtnReset: 'Reset to UN Official Template',
+      qmBtnReset: 'Reset to UN Official Template (21 Questions)',
       qmBtnSave: 'Save & Apply Changes',
       toastQuestionsSaved: 'Evaluation questions configuration saved successfully.',
-      toastQuestionsReset: 'Evaluation questions reset to official UNRWA template.',
-      confirmResetQuestions: 'Are you sure you want to reset all evaluation questions to the official UN template?',
+      toastQuestionsReset: 'Evaluation questions reset to official UNRWA template (21 questions).',
+      confirmResetQuestions: 'Are you sure you want to reset all evaluation questions to the official UN template (21 questions)?',
       linkOpenForm: 'Open Form',
       confirmClearArchive: 'Are you sure you want to delete all session archives? This action cannot be undone.',
       confirmDeleteAttendee: 'Are you sure you want to remove this attendee?',
@@ -355,11 +374,11 @@
       qmTextLabel: 'نص السؤال (باللغة العربية):',
       qmBtnAdd: 'إضافة السؤال للاستمارة',
       qmListTitle: 'الأسئلة الحالية في الاستمارة',
-      qmBtnReset: 'استعادة القالب الرسمي (12 سؤال)',
+      qmBtnReset: 'استعادة القالب الرسمي (21 سؤال)',
       qmBtnSave: 'حفظ وتطبيق التغييرات',
       toastQuestionsSaved: 'تم حفظ وتحديث أسئلة استمارة التقييم بنجاح.',
-      toastQuestionsReset: 'تمت استعادة الأسئلة إلى القالب الرسمي المعتمد للأونروا.',
-      confirmResetQuestions: 'هل أنت متأكد من رغبتك في إعادة تعيين الأسئلة إلى القالب القياسي الرسمي (12 سؤال)؟',
+      toastQuestionsReset: 'تمت استعادة الأسئلة إلى القالب الرسمي المعتمد للأونروا (21 سؤال).',
+      confirmResetQuestions: 'هل أنت متأكد من رغبتك في إعادة تعيين الأسئلة إلى القالب القياسي الرسمي (21 سؤال)؟',
       linkOpenForm: 'فتح الاستمارة',
       confirmClearArchive: 'هل أنت متأكد من رغبتك في مسح كامل أرشيف الدورات التدريبية؟ لا يمكن التراجع عن هذا الإجراء.',
       confirmDeleteAttendee: 'هل أنت متأكد من حذف هذا المتدرب من سجل الحضور؟',
@@ -1020,7 +1039,7 @@
 
   // 13. Questions Manager Logic (Form Builder)
   function loadEvalQuestions() {
-    const saved = localStorage.getItem('attendtrack_eval_questions_v1');
+    const saved = localStorage.getItem('attendtrack_eval_questions_v2');
     if (saved) {
       try {
         evalQuestions = JSON.parse(saved);
@@ -1029,14 +1048,17 @@
       }
     } else {
       evalQuestions = JSON.parse(JSON.stringify(DEFAULT_EVAL_QUESTIONS));
+      localStorage.setItem('attendtrack_eval_questions_v2', JSON.stringify(evalQuestions));
     }
 
     if (db) {
-      db.ref('settings/eval_questions').once('value').then(snap => {
+      db.ref('settings/eval_questions_v2').once('value').then(snap => {
         const val = snap.val();
         if (val && Array.isArray(val) && val.length > 0) {
           evalQuestions = val;
           renderQuestionsManagerList();
+        } else {
+          db.ref('settings/eval_questions_v2').set(DEFAULT_EVAL_QUESTIONS).catch(console.warn);
         }
       }).catch(console.warn);
     }
@@ -1050,18 +1072,22 @@
     if (countEl) countEl.textContent = activeCount;
 
     const sectionNames = {
-      1: (currentLang === 'ar') ? '1. محتوى التدريب' : '1. Content',
-      2: (currentLang === 'ar') ? '2. أداء المدرب' : '2. Trainer',
-      3: (currentLang === 'ar') ? '3. تنظيم الدورة' : '3. Organization',
-      4: (currentLang === 'ar') ? '4. الأثر والتطبيق' : '4. Impact',
-      5: (currentLang === 'ar') ? '5. عام ومقترحات' : '5. Overall'
+      1: (currentLang === 'ar') ? '1. أهداف ومحتوى الدورة' : '1. Objectives & Content',
+      2: (currentLang === 'ar') ? '2. أداء المدرب/ة' : '2. Trainer Delivery',
+      3: (currentLang === 'ar') ? '3. مكان التدريب والتنظيم' : '3. Venue & Organization',
+      4: (currentLang === 'ar') ? '4. التقييم الإجمالي' : '4. Overall Rating',
+      5: (currentLang === 'ar') ? '5. الأثر والارتباط بالعمل' : '5. Impact & Relevance'
     };
 
     const typeNames = {
+      likert_5: (currentLang === 'ar') ? 'مقياس خماسي (1-5)' : 'Scale (1-5)',
+      overall_5: (currentLang === 'ar') ? 'تقييم شامل (1-5)' : 'Overall (1-5)',
+      relevance_5: (currentLang === 'ar') ? 'صلة بالعمل (1-5)' : 'Relevance (1-5)',
+      perform_3: (currentLang === 'ar') ? 'تحسين الأداء (3 خيارات)' : 'Performance (3 choices)',
       yes_somewhat_no: (currentLang === 'ar') ? 'نعم / إلى حد ما / لا' : 'Yes / Somewhat / No',
       yes_no: (currentLang === 'ar') ? 'نعم / لا' : 'Yes / No',
-      rating_4: (currentLang === 'ar') ? 'تقييم: ممتاز - ضعيف' : 'Rating (4 stars)',
-      text: (currentLang === 'ar') ? 'نص حر ومقترحات' : 'Free Text'
+      rating_4: (currentLang === 'ar') ? 'تقييم 4 نجوم' : 'Rating (4 stars)',
+      text: (currentLang === 'ar') ? 'ملاحظات نصية' : 'Free Text'
     };
 
     container.innerHTML = evalQuestions.map((q, idx) => {
@@ -1182,27 +1208,36 @@
 
     const isAr = (currentLang === 'ar');
 
-    const valMap = isAr ? {
-      yes: 'نعم',
-      somewhat: 'إلى حد ما',
-      no: 'لا',
-      excellent: 'ممتاز',
-      very_good: 'جيد جداً',
-      good: 'جيد',
-      poor: 'ضعيف'
-    } : {
-      yes: 'Yes',
-      somewhat: 'Somewhat',
-      no: 'No',
-      excellent: 'Excellent',
-      very_good: 'Very Good',
-      good: 'Good',
-      poor: 'Poor'
-    };
-
-    function translateVal(v) {
+    function translateVal(v, qType) {
       if (!v) return isAr ? 'غير محدد' : 'N/A';
       const cleanKey = String(v).toLowerCase().trim().replace(/\s+/g, '_');
+      if (qType === 'likert_5') {
+        const likertMapAr = { '5': '5 - أوافق وبشدة', '4': '4 - موافق', '3': '3 - محايد', '2': '2 - غير موافق', '1': '1 - غير موافق وبشدة' };
+        const likertMapEn = { '5': '5 - Strongly Agree', '4': '4 - Agree', '3': '3 - Neutral', '2': '2 - Disagree', '1': '1 - Strongly Disagree' };
+        return (isAr ? likertMapAr[v] : likertMapEn[v]) || v;
+      }
+      if (qType === 'overall_5') {
+        const overallMapAr = { '5': '5 - ممتاز', '4': '4 - جيد', '3': '3 - متوسط', '2': '2 - ضعيف', '1': '1 - ضعيف جداً' };
+        const overallMapEn = { '5': '5 - Excellent', '4': '4 - Good', '3': '3 - Average', '2': '2 - Poor', '1': '1 - Very Poor' };
+        return (isAr ? overallMapAr[v] : overallMapEn[v]) || v;
+      }
+      if (qType === 'relevance_5') {
+        const relMapAr = { '5': '5 - ذو صلة وثيقة جداً', '4': '4 - ذو صلة', '3': '3 - غير متأكد', '2': '2 - ذو صلة جزئياً', '1': '1 - غير ذي صلة إطلاقاً' };
+        const relMapEn = { '5': '5 - Highly relevant', '4': '4 - Relevant', '3': '3 - Unsure', '2': '2 - Partially relevant', '1': '1 - Not at all' };
+        return (isAr ? relMapAr[v] : relMapEn[v]) || v;
+      }
+      if (qType === 'perform_3') {
+        const perfMapAr = { 'yes': 'نعم، بالتأكيد سيساعدني', 'maybe': 'ربما، لست متأكداً', 'no': 'لا، لا أعتقد ذلك' };
+        const perfMapEn = { 'yes': 'Yes, it definitely will.', 'maybe': 'Maybe, I am not sure.', 'no': 'No, I don’t think so.' };
+        return (isAr ? perfMapAr[cleanKey] : perfMapEn[cleanKey]) || v;
+      }
+      const valMap = isAr ? {
+        yes: 'نعم', somewhat: 'إلى حد ما', no: 'لا',
+        excellent: 'ممتاز', very_good: 'جيد جداً', good: 'جيد', poor: 'ضعيف'
+      } : {
+        yes: 'Yes', somewhat: 'Somewhat', no: 'No',
+        excellent: 'Excellent', very_good: 'Very Good', good: 'Good', poor: 'Poor'
+      };
       return valMap[cleanKey] || v;
     }
 
@@ -1221,41 +1256,109 @@
       return totalEvals > 0 ? Math.round((count / totalEvals) * 100) + '%' : '0%';
     }
 
-    // High satisfaction from rating questions or Q11
-    const ratingQ = activeQuestions.find(q => q.type === 'rating_4') || activeQuestions.find(q => q.id === 'q11');
+    // High satisfaction rate across all 5-point questions (rated 4 or 5)
+    let total5ptRatings = 0;
     let highSatCount = 0;
-    if (ratingQ) {
-      highSatCount = countChoice(ratingQ.id, 'excellent') + countChoice(ratingQ.id, 'very_good');
-    }
-    const highSatPct = calcPct(highSatCount);
+    activeQuestions.forEach(q => {
+      if (q.type === 'likert_5' || q.type === 'overall_5' || q.type === 'relevance_5') {
+        evaluations.forEach(e => {
+          const val = (e.ratings && e.ratings[q.id]) || e[q.id];
+          if (val) {
+            total5ptRatings++;
+            if (val === '5' || val === '4' || val === 5 || val === 4) {
+              highSatCount++;
+            }
+          }
+        });
+      }
+    });
+
+    const highSatPct = total5ptRatings > 0 ? Math.round((highSatCount / total5ptRatings) * 100) + '%' : '0%';
 
     const c1 = isAr ? 'المؤشر / البيان' : 'Indicator / Metric';
     const c2 = isAr ? 'النتيجة / الإحصائية' : 'Result / Statistic';
     const c3 = isAr ? 'التفاصيل والنسب' : 'Details & Percentages';
 
     const sheet1Rows = [
+      { [c1]: isAr ? 'نموذج الاستمارة' : 'Form Template', [c2]: isAr ? 'استمارة تقييم التدريب - المستوى الأول (للدورات أقل من 3 أيام)' : 'Learning Evaluation Form Level 1 (Under 3 days)', [c3]: 'UNRWA HR Standard' },
       { [c1]: isAr ? 'اسم الدورة التدريبية' : 'Course Title', [c2]: session.course, [c3]: '' },
       { [c1]: isAr ? 'مكان التدريب / المركز' : 'Venue / Center', [c2]: session.location, [c3]: '' },
       { [c1]: isAr ? 'اسم المدرب' : 'Trainer Name', [c2]: session.trainer, [c3]: '' },
       { [c1]: isAr ? 'تاريخ الدورة وتوقيتها' : 'Date & Timing', [c2]: `${session.date} (${session.time})`, [c3]: '' },
-      { [c1]: isAr ? 'إجمالي التقييمات السرية المستلمة' : 'Total Anonymous Evaluations Received', [c2]: totalEvals, [c3]: isAr ? `${totalEvals} مقيّم (بدون هوية)` : `${totalEvals} respondents (100% anonymous)` },
-      { [c1]: isAr ? 'نسبة الرضا العام الكلية (ممتاز + جيد جداً)' : 'Overall High Satisfaction Rate (Excellent + Very Good)', [c2]: highSatPct, [c3]: isAr ? `${highSatCount} من أصل ${totalEvals} مشارك` : `${highSatCount} of ${totalEvals} participants` },
+      { [c1]: isAr ? 'إجمالي التقييمات السرية المستلمة' : 'Total Anonymous Evaluations Received', [c2]: totalEvals, [c3]: isAr ? `${totalEvals} مقيّم (بدون هوية 100%)` : `${totalEvals} respondents (100% anonymous)` },
+      { [c1]: isAr ? 'نسبة الرضا العام الكلية (أوافق وبشدة + موافق)' : 'Overall High Satisfaction Rate (Strongly Agree + Agree)', [c2]: highSatPct, [c3]: isAr ? `${highSatCount} إجابة إيجابية من أصل ${total5ptRatings}` : `${highSatCount} positive ratings of ${total5ptRatings}` },
       { [c1]: '', [c2]: '', [c3]: '' },
-      { [c1]: isAr ? '--- تفاصيل ومؤشرات الأسئلة المفعّلة في الاستمارة ---' : '--- Active Form Questions Indicators Breakdown ---', [c2]: '', [c3]: '' }
+      { [c1]: isAr ? '--- مؤشرات ونسب الأسئلة المعتمدة في الاستمارة (21 سؤال) ---' : '--- Detailed Question Indicators Breakdown ---', [c2]: '', [c3]: '' }
     ];
 
     activeQuestions.forEach((q, qIndex) => {
       const qNum = qIndex + 1;
       const qText = isAr ? (q.textAr || q.textEn) : (q.textEn || q.textAr);
 
-      if (q.type === 'yes_somewhat_no') {
+      if (q.type === 'likert_5') {
+        const c5 = countChoice(q.id, '5');
+        const c4 = countChoice(q.id, '4');
+        const c3 = countChoice(q.id, '3');
+        const c2 = countChoice(q.id, '2');
+        const c1Val = countChoice(q.id, '1');
+        const avgScore = totalEvals > 0 ? ((c5 * 5 + c4 * 4 + c3 * 3 + c2 * 2 + c1Val * 1) / totalEvals).toFixed(2) : '0.00';
+
+        sheet1Rows.push({
+          [c1]: `${qNum}. ${qText}`,
+          [c2]: isAr ? `المتوسط: ${avgScore} / 5.0 (أوافق: ${calcPct(c5 + c4)})` : `Avg: ${avgScore} / 5.0 (Agree: ${calcPct(c5 + c4)})`,
+          [c3]: isAr
+            ? `أوافق وبشدة (5): ${c5} (${calcPct(c5)}) | موافق (4): ${c4} (${calcPct(c4)}) | محايد (3): ${c3} (${calcPct(c3)}) | غير موافق (2): ${c2} (${calcPct(c2)}) | غير موافق وبشدة (1): ${c1Val} (${calcPct(c1Val)})`
+            : `Strongly Agree (5): ${c5} (${calcPct(c5)}) | Agree (4): ${c4} (${calcPct(c4)}) | Neutral (3): ${c3} (${calcPct(c3)}) | Disagree (2): ${c2} (${calcPct(c2)}) | Strongly Disagree (1): ${c1Val} (${calcPct(c1Val)})`
+        });
+      } else if (q.type === 'overall_5') {
+        const c5 = countChoice(q.id, '5');
+        const c4 = countChoice(q.id, '4');
+        const c3 = countChoice(q.id, '3');
+        const c2 = countChoice(q.id, '2');
+        const c1Val = countChoice(q.id, '1');
+        const avgScore = totalEvals > 0 ? ((c5 * 5 + c4 * 4 + c3 * 3 + c2 * 2 + c1Val * 1) / totalEvals).toFixed(2) : '0.00';
+
+        sheet1Rows.push({
+          [c1]: `${qNum}. ${qText}`,
+          [c2]: isAr ? `المتوسط: ${avgScore} / 5.0 (ممتاز وجيد: ${calcPct(c5 + c4)})` : `Avg: ${avgScore} / 5.0 (Positive: ${calcPct(c5 + c4)})`,
+          [c3]: isAr
+            ? `ممتاز (5): ${c5} (${calcPct(c5)}) | جيد (4): ${c4} (${calcPct(c4)}) | متوسط (3): ${c3} (${calcPct(c3)}) | ضعيف (2): ${c2} (${calcPct(c2)}) | ضعيف جداً (1): ${c1Val} (${calcPct(c1Val)})`
+            : `Excellent (5): ${c5} | Good (4): ${c4} | Average (3): ${c3} | Poor (2): ${c2} | Very Poor (1): ${c1Val}`
+        });
+      } else if (q.type === 'relevance_5') {
+        const c5 = countChoice(q.id, '5');
+        const c4 = countChoice(q.id, '4');
+        const c3 = countChoice(q.id, '3');
+        const c2 = countChoice(q.id, '2');
+        const c1Val = countChoice(q.id, '1');
+        const avgScore = totalEvals > 0 ? ((c5 * 5 + c4 * 4 + c3 * 3 + c2 * 2 + c1Val * 1) / totalEvals).toFixed(2) : '0.00';
+
+        sheet1Rows.push({
+          [c1]: `${qNum}. ${qText}`,
+          [c2]: isAr ? `المتوسط: ${avgScore} / 5.0 (ذو صلة: ${calcPct(c5 + c4)})` : `Avg: ${avgScore} / 5.0 (Relevant: ${calcPct(c5 + c4)})`,
+          [c3]: isAr
+            ? `وثيقة جداً (5): ${c5} (${calcPct(c5)}) | صلة (4): ${c4} (${calcPct(c4)}) | غير متأكد (3): ${c3} (${calcPct(c3)}) | جزئياً (2): ${c2} (${calcPct(c2)}) | إطلاقاً (1): ${c1Val} (${calcPct(c1Val)})`
+            : `Highly relevant (5): ${c5} | Relevant (4): ${c4} | Unsure (3): ${c3} | Partially (2): ${c2} | Not at all (1): ${c1Val}`
+        });
+      } else if (q.type === 'perform_3') {
+        const yesC = countChoice(q.id, 'yes');
+        const maybeC = countChoice(q.id, 'maybe');
+        const noC = countChoice(q.id, 'no');
+        sheet1Rows.push({
+          [c1]: `${qNum}. ${qText}`,
+          [c2]: isAr ? `نعم بالتأكيد: ${calcPct(yesC)}` : `Definitely: ${calcPct(yesC)}`,
+          [c3]: isAr
+            ? `نعم بالتأكيد: ${yesC} (${calcPct(yesC)}) | ربما/غير متأكد: ${maybeC} (${calcPct(maybeC)}) | لا أعتقد: ${noC} (${calcPct(noC)})`
+            : `Definitely: ${yesC} (${calcPct(yesC)}) | Maybe: ${maybeC} (${calcPct(maybeC)}) | No: ${noC} (${calcPct(noC)})`
+        });
+      } else if (q.type === 'yes_somewhat_no') {
         const yesC = countChoice(q.id, 'yes');
         const swC = countChoice(q.id, 'somewhat');
         const noC = countChoice(q.id, 'no');
         sheet1Rows.push({
           [c1]: `${qNum}. ${qText}`,
           [c2]: isAr ? `نعم: ${calcPct(yesC)}` : `Yes: ${calcPct(yesC)}`,
-          [c3]: isAr ? `نعم: ${yesC} (${calcPct(yesC)}) | إلى حد ما: ${swC} (${calcPct(swC)}) | لا: ${noC} (${calcPct(noC)})` : `Yes: ${yesC} (${calcPct(yesC)}) | Somewhat: ${swC} (${calcPct(swC)}) | No: ${noC} (${calcPct(noC)})`
+          [c3]: isAr ? `نعم: ${yesC} (${calcPct(yesC)}) | إلى حد ما: ${swC} (${calcPct(swC)}) | لا: ${noC} (${calcPct(noC)})` : `Yes: ${yesC} | Somewhat: ${swC} | No: ${noC}`
         });
       } else if (q.type === 'yes_no') {
         const yesC = countChoice(q.id, 'yes');
@@ -1263,7 +1366,7 @@
         sheet1Rows.push({
           [c1]: `${qNum}. ${qText}`,
           [c2]: isAr ? `نعم: ${calcPct(yesC)}` : `Yes: ${calcPct(yesC)}`,
-          [c3]: isAr ? `نعم: ${yesC} (${calcPct(yesC)}) | لا: ${noC} (${calcPct(noC)})` : `Yes: ${yesC} (${calcPct(yesC)}) | No: ${noC} (${calcPct(noC)})`
+          [c3]: isAr ? `نعم: ${yesC} (${calcPct(yesC)}) | لا: ${noC} (${calcPct(noC)})` : `Yes: ${yesC} | No: ${noC}`
         });
       } else if (q.type === 'rating_4') {
         const exC = countChoice(q.id, 'excellent');
@@ -1272,7 +1375,7 @@
         const prC = countChoice(q.id, 'poor');
         sheet1Rows.push({
           [c1]: `${qNum}. ${qText}`,
-          [c2]: isAr ? `ممتاز وجيد جداً: ${calcPct(exC + vgC)}` : `High Satisfaction: ${calcPct(exC + vgC)}`,
+          [c2]: isAr ? `ممتاز وجيد جداً: ${calcPct(exC + vgC)}` : `Satisfaction: ${calcPct(exC + vgC)}`,
           [c3]: isAr ? `ممتاز: ${exC} (${calcPct(exC)}) | جيد جداً: ${vgC} (${calcPct(vgC)}) | جيد: ${gdC} (${calcPct(gdC)}) | ضعيف: ${prC} (${calcPct(prC)})` : `Excellent: ${exC} | Very Good: ${vgC} | Good: ${gdC} | Poor: ${prC}`
         });
       } else {
@@ -1311,7 +1414,7 @@
         if (q.type === 'text') {
           rowObj[colHeader] = val || (isAr ? 'لا توجد ملاحظات' : 'No comments');
         } else {
-          rowObj[colHeader] = translateVal(val);
+          rowObj[colHeader] = translateVal(val, q.type);
         }
       });
 
