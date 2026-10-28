@@ -15,6 +15,24 @@
   let projectorQr = null;
   let flyerQr = null;
   let isInitialFirebaseLoad = true;
+  let currentQrMode = 'attendance'; // 'attendance' | 'evaluation'
+
+  const DEFAULT_EVAL_QUESTIONS = [
+    { id: 'q1', section: 1, type: 'yes_somewhat_no', textAr: 'هل كانت محتويات الدورة واضحة ومفهومة؟', textEn: 'Were the course contents clear and understandable?', enabled: true },
+    { id: 'q2', section: 1, type: 'yes_somewhat_no', textAr: 'هل كانت المعلومات المقدمة في الدورة مفيدة لعملك؟', textEn: 'Was the information provided in the course useful for your job?', enabled: true },
+    { id: 'q3', section: 1, type: 'yes_somewhat_no', textAr: 'هل كانت مواد التدريب (العروض التقديمية، الملاحظات، إلخ) ذات جودة عالية؟', textEn: 'Were the training materials (slides, notes, etc.) of high quality?', enabled: true },
+    { id: 'q4', section: 2, type: 'yes_somewhat_no', textAr: 'هل كان المدرب على دراية بالموضوع؟', textEn: 'Was the instructor knowledgeable about the subject?', enabled: true },
+    { id: 'q5', section: 2, type: 'yes_no', textAr: 'هل كان المدرب مفيداً ومستعداً للإجابة على الأسئلة؟', textEn: 'Was the instructor helpful and willing to answer questions?', enabled: true },
+    { id: 'q6', section: 2, type: 'yes_no', textAr: 'هل كانت طريقة تقديم المدرب فعالة؟', textEn: 'Was the instructor\'s delivery method effective?', enabled: true },
+    { id: 'q7', section: 3, type: 'yes_somewhat_no', textAr: 'هل كانت الدورة منظمة جيداً؟ (الوقت، المكان، الجدول الزمني، إلخ)؟', textEn: 'Was the course well-organized? (timing, location, schedule, etc.)?', enabled: true },
+    { id: 'q8', section: 3, type: 'yes_no', textAr: 'هل كانت مدة الدورة مناسبة لتغطية المواضيع؟', textEn: 'Was the duration of the course appropriate to cover the topics?', enabled: true },
+    { id: 'q9', section: 4, type: 'yes_no', textAr: 'هل تعتقد أنك ستكون قادراً على تطبيق ما تعلمته في عملك اليومي؟', textEn: 'Do you believe you will be able to apply what you learned in your daily work?', enabled: true },
+    { id: 'q10', section: 4, type: 'yes_no', textAr: 'هل تعتقد أن الدورة ستساهم في تحسين أدائك في العمل؟', textEn: 'Did the training contribute to improving your skills and performance?', enabled: true },
+    { id: 'q11', section: 5, type: 'rating_4', textAr: 'ما تقييمك العام للدورة التدريبية ككل؟', textEn: 'What is your overall rating of the course?', enabled: true },
+    { id: 'q12', section: 5, type: 'text', textAr: 'هل لديك أي اقتراحات أو ملاحظات لتحسين وتطوير التدريب؟', textEn: 'Do you have any suggestions or comments to improve training?', enabled: true }
+  ];
+
+  let evalQuestions = [];
 
   // 2. Firebase Configuration & Initialization
   const firebaseConfig = {
@@ -171,12 +189,46 @@
       noAttendeesYetSub: 'Scan the session QR code to register attendees in real-time.',
       badgeLiveNow: 'Active Session',
       lblAttendeesCount: 'Attendees',
-      btnExportExcel: 'Export Excel (.xlsx)',
+      lblEvaluationsCount: 'Evaluations',
+      lblSatisfactionRate: 'Satisfaction',
+      btnExportExcel: 'Attendance (.xlsx)',
+      btnExportEvalExcel: 'Evaluation (.xlsx)',
       btnActivateQR: 'Activate QR',
+      tabModeAttendance: 'Attendance QR (Check-In)',
+      tabModeEvaluation: 'Anonymous Evaluation QR',
+      btnCopyEvalLink: 'Copy Evaluation Link',
+      btnTestEval: 'Test Trainee Evaluation',
       statTotalRegistered: 'Registered:',
       statGenderRatio: 'Gender (M/F):',
       statDepartments: 'Departments:',
+      statEvaluations: 'Anonymous Evals:',
+      statSatisfaction: 'Satisfaction Rate:',
       statCheckinLink: 'Check-in URL:',
+      statEvalLink: 'Evaluation URL:',
+      toastEvalLinkCopied: 'Evaluation link copied to clipboard.',
+      projEvalInstructionTitle: 'Scan QR with phone camera for anonymous training evaluation',
+      projEvalInstructionDesc: 'Your feedback is 100% confidential. No identity or employee number is recorded.',
+      flyerEvalBadge: 'ANONYMOUS TRAINING EVALUATION',
+      flyerEvalInstructionsTitle: 'Training Evaluation Instructions:',
+      flyerEvalStep1: 'Open your smartphone camera and point it at this QR Code.',
+      flyerEvalStep2: 'Tap the notification banner to open the UNRWA Training Evaluation Form.',
+      flyerEvalStep3: 'Complete the 5 evaluation sections freely and objectively.',
+      flyerEvalStep4: 'Your responses are 100% confidential and anonymous (no identity is tracked).',
+      flyerEvalStep5: 'Click "Submit Final Evaluation" to contribute to training development.',
+      btnQuestionsSettings: 'Edit Questions',
+      qmTitle: 'Customize Evaluation Form Questions',
+      qmSubtitle: 'Customize question texts, enable/disable items, or add new questions to the evaluation form.',
+      qmAddNewTitle: 'Add New Question to Form',
+      qmSecLabel: 'Evaluation Section:',
+      qmTypeLabel: 'Answer Type:',
+      qmTextLabel: 'Question Text (Arabic / English):',
+      qmBtnAdd: 'Add Question',
+      qmListTitle: 'Current Form Questions',
+      qmBtnReset: 'Reset to UN Official Template',
+      qmBtnSave: 'Save & Apply Changes',
+      toastQuestionsSaved: 'Evaluation questions configuration saved successfully.',
+      toastQuestionsReset: 'Evaluation questions reset to official UNRWA template.',
+      confirmResetQuestions: 'Are you sure you want to reset all evaluation questions to the official UN template?',
       linkOpenForm: 'Open Form',
       confirmClearArchive: 'Are you sure you want to delete all session archives? This action cannot be undone.',
       confirmDeleteAttendee: 'Are you sure you want to remove this attendee?',
@@ -268,12 +320,46 @@
       noAttendeesYetSub: 'امسح رمز الحضور المخصص لهذه الجلسة لتسجيل المشاركين فورياً.',
       badgeLiveNow: 'الجلسة النشطة',
       lblAttendeesCount: 'مشارك',
-      btnExportExcel: 'تصدير إكسل (.xlsx)',
+      lblEvaluationsCount: 'تقييم سري',
+      lblSatisfactionRate: 'نسبة الرضا',
+      btnExportExcel: 'كشف الحضور (.xlsx)',
+      btnExportEvalExcel: 'نتائج التقييم (.xlsx)',
       btnActivateQR: 'تفعيل الرمز',
+      tabModeAttendance: 'رمز الحضور (Check-In)',
+      tabModeEvaluation: 'رمز التقييم السري (Evaluation)',
+      btnCopyEvalLink: 'نسخ رابط التقييم',
+      btnTestEval: 'تجربة استمارة التقييم',
       statTotalRegistered: 'المسجلون:',
       statGenderRatio: 'النوع (ذكور / إناث):',
       statDepartments: 'الأقسام:',
-      statCheckinLink: 'رابط التسجيل:',
+      statEvaluations: 'التقييمات السرية:',
+      statSatisfaction: 'نسبة الرضا العام:',
+      statCheckinLink: 'رابط الحضور:',
+      statEvalLink: 'رابط التقييم:',
+      toastEvalLinkCopied: 'تم نسخ رابط استمارة التقييم السرية إلى الحافظة.',
+      projEvalInstructionTitle: 'امسح الرمز بكاميرا الهاتف لتعبئة استمارة التقييم السرية',
+      projEvalInstructionDesc: 'تقييمك سري ومجهول الهوية بالكامل بنسبة 100% لتطوير التدريب دون تسجيل أي بيانات شخصية.',
+      flyerEvalBadge: 'استمارة تقييم التدريب السرية',
+      flyerEvalInstructionsTitle: 'تعليمات تقييم الدورة التدريبية:',
+      flyerEvalStep1: 'افتح تطبيق الكاميرا على هاتفك المحمول ووجّهه نحو هذا الرمز.',
+      flyerEvalStep2: 'اضغط على الرابط الظاهر لفتح استمارة تقييم التدريب الرسمية للأونروا.',
+      flyerEvalStep3: 'أجب على أقسام التقييم الخمسة بكل شفافية وحيادية وموضوعية.',
+      flyerEvalStep4: 'الاستمارة مجهولة الهوية بالكامل وسرية بنسبة 100% (لا يُطلب اسم أو رقم وظيفي).',
+      flyerEvalStep5: 'اضغط "إرسال التقييم النهائي" للمساهمة في تحسين جودة برامج التدريب المستقبلي.',
+      btnQuestionsSettings: 'تعديل الأسئلة',
+      qmTitle: 'إدارة وتخصيص أسئلة استمارة التقييم',
+      qmSubtitle: 'يمكنك تعديل نصوص الأسئلة، تفعيل أو تعطيل أي سؤال، أو إضافة أسئلة مخصصة للدورة.',
+      qmAddNewTitle: 'إضافة سؤال جديد إلى الاستمارة',
+      qmSecLabel: 'قسم التقييم:',
+      qmTypeLabel: 'نوع الإجابة:',
+      qmTextLabel: 'نص السؤال (باللغة العربية):',
+      qmBtnAdd: 'إضافة السؤال للاستمارة',
+      qmListTitle: 'الأسئلة الحالية في الاستمارة',
+      qmBtnReset: 'استعادة القالب الرسمي (12 سؤال)',
+      qmBtnSave: 'حفظ وتطبيق التغييرات',
+      toastQuestionsSaved: 'تم حفظ وتحديث أسئلة استمارة التقييم بنجاح.',
+      toastQuestionsReset: 'تمت استعادة الأسئلة إلى القالب الرسمي المعتمد للأونروا.',
+      confirmResetQuestions: 'هل أنت متأكد من رغبتك في إعادة تعيين الأسئلة إلى القالب القياسي الرسمي (12 سؤال)؟',
       linkOpenForm: 'فتح الاستمارة',
       confirmClearArchive: 'هل أنت متأكد من رغبتك في مسح كامل أرشيف الدورات التدريبية؟ لا يمكن التراجع عن هذا الإجراء.',
       confirmDeleteAttendee: 'هل أنت متأكد من حذف هذا المتدرب من سجل الحضور؟',
@@ -385,8 +471,23 @@
     const targetSession = session || currentSession;
     if (!targetSession) return '';
     const base = getBaseHostUrl();
-    const cleanBase = base.startsWith('http') ? base : 'https://' + base;
+    const cleanBase = (base.startsWith('http') || base.startsWith('file:')) ? base : 'https://' + base;
     const url = new URL(cleanBase + '/checkin.html');
+    url.searchParams.set('c', targetSession.course);
+    url.searchParams.set('loc', targetSession.location);
+    url.searchParams.set('tr', targetSession.trainer);
+    url.searchParams.set('d', targetSession.date);
+    url.searchParams.set('t', targetSession.time);
+    url.searchParams.set('sid', targetSession.sessionId);
+    return url.toString();
+  }
+
+  function generateEvalUrl(session = null) {
+    const targetSession = session || currentSession;
+    if (!targetSession) return '';
+    const base = getBaseHostUrl();
+    const cleanBase = (base.startsWith('http') || base.startsWith('file:')) ? base : 'https://' + base;
+    const url = new URL(cleanBase + '/eval.html');
     url.searchParams.set('c', targetSession.course);
     url.searchParams.set('loc', targetSession.location);
     url.searchParams.set('tr', targetSession.trainer);
@@ -399,7 +500,9 @@
   // 8. QR Code Rendering
   function renderQrCodes() {
     if (!currentSession) return;
-    const targetUrl = generateCheckinUrl(currentSession);
+    const targetUrl = (currentQrMode === 'evaluation')
+      ? generateEvalUrl(currentSession)
+      : generateCheckinUrl(currentSession);
     if (!targetUrl) return;
 
     if (typeof QRCode === 'undefined') {
@@ -407,10 +510,24 @@
       return;
     }
 
+    const dict = translations[currentLang];
+
     const displayHost = document.getElementById('hostCurrentUrlDisplay');
     if (displayHost) {
       displayHost.textContent = targetUrl;
     }
+
+    // Update buttons text based on mode
+    const copyBtnText = document.getElementById('btnCopyLinkText');
+    const testBtnText = document.getElementById('btnTestCheckinText');
+    if (copyBtnText) {
+      copyBtnText.textContent = (currentQrMode === 'evaluation') ? dict.btnCopyEvalLink : dict.btnCopyLink;
+    }
+    if (testBtnText) {
+      testBtnText.textContent = (currentQrMode === 'evaluation') ? dict.btnTestEval : dict.btnTestCheckin;
+    }
+
+    const qrColor = (currentQrMode === 'evaluation') ? '#0072bc' : '#002d62';
 
     // 1. Admin Dashboard QR
     const qrAdminContainer = document.getElementById('qrcode');
@@ -420,7 +537,7 @@
         text: targetUrl,
         width: 210,
         height: 210,
-        colorDark: '#002d62',
+        colorDark: qrColor,
         colorLight: '#ffffff',
         correctLevel: QRCode.CorrectLevel.M
       });
@@ -434,10 +551,19 @@
         text: targetUrl,
         width: 320,
         height: 320,
-        colorDark: '#002d62',
+        colorDark: qrColor,
         colorLight: '#ffffff',
         correctLevel: QRCode.CorrectLevel.M
       });
+    }
+
+    const projTitle = document.querySelector('[data-i18n="projInstructionTitle"]');
+    const projDesc = document.querySelector('[data-i18n="projInstructionDesc"]');
+    if (projTitle) {
+      projTitle.textContent = (currentQrMode === 'evaluation') ? dict.projEvalInstructionTitle : dict.projInstructionTitle;
+    }
+    if (projDesc) {
+      projDesc.textContent = (currentQrMode === 'evaluation') ? dict.projEvalInstructionDesc : dict.projInstructionDesc;
     }
 
     // 3. A4 Table Flyer QR
@@ -448,10 +574,36 @@
         text: targetUrl,
         width: 220,
         height: 220,
-        colorDark: '#002d62',
+        colorDark: qrColor,
         colorLight: '#ffffff',
         correctLevel: QRCode.CorrectLevel.M
       });
+    }
+
+    const flyerBadge = document.querySelector('.flyer-badge');
+    const flyerInstrTitle = document.querySelector('[data-i18n="flyerInstructionsTitle"]');
+    const flyerStep1 = document.querySelector('[data-i18n="flyerStep1"]');
+    const flyerStep2 = document.querySelector('[data-i18n="flyerStep2"]');
+    const flyerStep3 = document.querySelector('[data-i18n="flyerStep3"]');
+    const flyerStep4 = document.querySelector('[data-i18n="flyerStep4"]');
+    const flyerStep5 = document.querySelector('[data-i18n="flyerStep5"]');
+
+    if (currentQrMode === 'evaluation') {
+      if (flyerBadge) flyerBadge.textContent = dict.flyerEvalBadge;
+      if (flyerInstrTitle) flyerInstrTitle.textContent = dict.flyerEvalInstructionsTitle;
+      if (flyerStep1) flyerStep1.textContent = dict.flyerEvalStep1;
+      if (flyerStep2) flyerStep2.textContent = dict.flyerEvalStep2;
+      if (flyerStep3) flyerStep3.textContent = dict.flyerEvalStep3;
+      if (flyerStep4) flyerStep4.textContent = dict.flyerEvalStep4;
+      if (flyerStep5) flyerStep5.textContent = dict.flyerEvalStep5;
+    } else {
+      if (flyerBadge) flyerBadge.textContent = dict.flyerBadge;
+      if (flyerInstrTitle) flyerInstrTitle.textContent = dict.flyerInstructionsTitle;
+      if (flyerStep1) flyerStep1.textContent = dict.flyerStep1;
+      if (flyerStep2) flyerStep2.textContent = dict.flyerStep2;
+      if (flyerStep3) flyerStep3.textContent = dict.flyerStep3;
+      if (flyerStep4) flyerStep4.textContent = dict.flyerStep4;
+      if (flyerStep5) flyerStep5.textContent = dict.flyerStep5;
     }
   }
 
@@ -526,12 +678,15 @@
 
       let hasChanges = false;
       let newAttendeeArrival = null;
+      let newEvalArrival = null;
 
       Object.keys(val).forEach(sid => {
         const remoteSession = val[sid];
         const meta = remoteSession.meta || {};
         const remoteAttendeesMap = remoteSession.attendees || {};
         const remoteAttendeesList = Object.values(remoteAttendeesMap);
+        const remoteEvaluationsMap = remoteSession.evaluations || {};
+        const remoteEvaluationsList = Object.values(remoteEvaluationsMap);
 
         let localSession = allSessions.find(s => s.sessionId === sid);
         if (!localSession) {
@@ -543,6 +698,7 @@
             date: meta.date || new Date().toISOString().split('T')[0],
             time: meta.time || '09:00 AM - 02:00 PM',
             attendees: [],
+            evaluations: [],
             isExpanded: (currentSession && currentSession.sessionId === sid)
           };
           allSessions.push(localSession);
@@ -552,10 +708,20 @@
         const prevCount = localSession.attendees.length;
         localSession.attendees = remoteAttendeesList.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
+        const prevEvalCount = (localSession.evaluations || []).length;
+        localSession.evaluations = remoteEvaluationsList.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
         if (!isInitialFirebaseLoad && localSession.attendees.length > prevCount) {
           hasChanges = true;
           newAttendeeArrival = {
             attendee: localSession.attendees[0],
+            course: localSession.course
+          };
+        }
+
+        if (!isInitialFirebaseLoad && localSession.evaluations.length > prevEvalCount) {
+          hasChanges = true;
+          newEvalArrival = {
             course: localSession.course
           };
         }
@@ -573,6 +739,14 @@
             ? `تسجيل حضور جديد في [${newAttendeeArrival.course}]: ${newAttendeeArrival.attendee.name} (${newAttendeeArrival.attendee.department})`
             : `New check-in in [${newAttendeeArrival.course}]: ${newAttendeeArrival.attendee.name} (${newAttendeeArrival.attendee.department})`;
           showToast(msg, 'success');
+        }
+
+        if (newEvalArrival && !isInitialFirebaseLoad) {
+          playCheckinChime();
+          const msg = (currentLang === 'ar')
+            ? `تم استلام تقييم تدريب سري جديد لدورة [${newEvalArrival.course}]`
+            : `New anonymous evaluation received for [${newEvalArrival.course}]`;
+          showToast(msg, 'info');
         }
       }
     });
@@ -633,6 +807,16 @@
     container.innerHTML = filtered.map(session => {
       const isActive = currentSession && currentSession.sessionId === session.sessionId;
       const attendeeCount = (session.attendees || []).length;
+      const evalList = session.evaluations || [];
+      const evalCount = evalList.length;
+
+      let highSatCount = 0;
+      evalList.forEach(e => {
+        const r = (e.ratings && e.ratings.q11) || '';
+        if (r === 'excellent' || r === 'very_good') highSatCount++;
+      });
+      const satisfactionRate = evalCount > 0 ? Math.round((highSatCount / evalCount) * 100) : 0;
+
       const expandedClass = session.isExpanded ? 'expanded' : '';
       const activeClass = isActive ? 'is-active-session' : '';
 
@@ -714,12 +898,24 @@
             <div class="folder-right-controls" onclick="event.stopPropagation();">
               
               <span class="folder-attendee-counter" title="${dict.lblAttendeesCount}">
+                <i class="fa-solid fa-user-check"></i>
                 <b>${attendeeCount}</b> ${dict.lblAttendeesCount}
+              </span>
+
+              <span class="folder-eval-counter" title="${dict.lblEvaluationsCount}" style="background: rgba(0, 114, 188, 0.1); color: #0072bc; padding: 4px 9px; border-radius: var(--radius-full); font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(0, 114, 188, 0.2);">
+                <i class="fa-solid fa-square-poll-vertical"></i>
+                <b>${evalCount}</b> ${dict.lblEvaluationsCount}
+                ${evalCount > 0 ? `<span style="color: #107c41;">(${satisfactionRate}%)</span>` : ''}
               </span>
 
               <button type="button" class="btn-folder-excel" onclick="window.AttendTrackAdmin.exportSessionExcel('${session.sessionId}')" title="${dict.btnExportExcel}">
                 <i class="fa-solid fa-file-excel"></i>
                 <span>${dict.btnExportExcel}</span>
+              </button>
+
+              <button type="button" class="btn-folder-excel-eval" onclick="window.AttendTrackAdmin.exportEvaluationExcel('${session.sessionId}')" title="${dict.btnExportEvalExcel}">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span>${dict.btnExportEvalExcel}</span>
               </button>
 
               ${!isActive ? `
@@ -754,12 +950,22 @@
                 <strong>${maleCount} / ${femaleCount}</strong>
               </div>
               <div class="folder-stat-pill">
-                <span>${dict.statDepartments}</span>
-                <strong>${deptsCount}</strong>
+                <span>${dict.statEvaluations}</span>
+                <strong style="color: #0072bc;">${evalCount}</strong>
+              </div>
+              <div class="folder-stat-pill">
+                <span>${dict.statSatisfaction}</span>
+                <strong style="color: ${satisfactionRate >= 75 ? '#107c41' : '#b78103'};">${evalCount > 0 ? satisfactionRate + '%' : '--'}</strong>
               </div>
               <div class="folder-stat-pill">
                 <span>${dict.statCheckinLink}</span>
                 <a href="${generateCheckinUrl(session)}" target="_blank" style="color: var(--un-blue-primary); font-size: 0.8rem; text-decoration: underline;">
+                  ${dict.linkOpenForm}
+                </a>
+              </div>
+              <div class="folder-stat-pill">
+                <span>${dict.statEvalLink}</span>
+                <a href="${generateEvalUrl(session)}" target="_blank" style="color: #0072bc; font-size: 0.8rem; text-decoration: underline;">
                   ${dict.linkOpenForm}
                 </a>
               </div>
@@ -812,7 +1018,87 @@
     }
   }
 
-  // 13. Isolated Excel Export (100% pure language headers)
+  // 13. Questions Manager Logic (Form Builder)
+  function loadEvalQuestions() {
+    const saved = localStorage.getItem('attendtrack_eval_questions_v1');
+    if (saved) {
+      try {
+        evalQuestions = JSON.parse(saved);
+      } catch (e) {
+        evalQuestions = JSON.parse(JSON.stringify(DEFAULT_EVAL_QUESTIONS));
+      }
+    } else {
+      evalQuestions = JSON.parse(JSON.stringify(DEFAULT_EVAL_QUESTIONS));
+    }
+
+    if (db) {
+      db.ref('settings/eval_questions').once('value').then(snap => {
+        const val = snap.val();
+        if (val && Array.isArray(val) && val.length > 0) {
+          evalQuestions = val;
+          renderQuestionsManagerList();
+        }
+      }).catch(console.warn);
+    }
+  }
+
+  function renderQuestionsManagerList() {
+    const container = document.getElementById('qmQuestionsListContainer');
+    if (!container) return;
+    const countEl = document.getElementById('qmActiveCount');
+    const activeCount = evalQuestions.filter(q => q.enabled !== false).length;
+    if (countEl) countEl.textContent = activeCount;
+
+    const sectionNames = {
+      1: (currentLang === 'ar') ? '1. محتوى التدريب' : '1. Content',
+      2: (currentLang === 'ar') ? '2. أداء المدرب' : '2. Trainer',
+      3: (currentLang === 'ar') ? '3. تنظيم الدورة' : '3. Organization',
+      4: (currentLang === 'ar') ? '4. الأثر والتطبيق' : '4. Impact',
+      5: (currentLang === 'ar') ? '5. عام ومقترحات' : '5. Overall'
+    };
+
+    const typeNames = {
+      yes_somewhat_no: (currentLang === 'ar') ? 'نعم / إلى حد ما / لا' : 'Yes / Somewhat / No',
+      yes_no: (currentLang === 'ar') ? 'نعم / لا' : 'Yes / No',
+      rating_4: (currentLang === 'ar') ? 'تقييم: ممتاز - ضعيف' : 'Rating (4 stars)',
+      text: (currentLang === 'ar') ? 'نص حر ومقترحات' : 'Free Text'
+    };
+
+    container.innerHTML = evalQuestions.map((q, idx) => {
+      const isEnabled = (q.enabled !== false);
+      const disabledClass = isEnabled ? '' : 'disabled';
+      const toggleBtnClass = isEnabled ? 'active' : 'inactive';
+      const toggleBtnText = isEnabled ? ((currentLang === 'ar') ? 'مفعّل' : 'Active') : ((currentLang === 'ar') ? 'معطّل' : 'Disabled');
+      const qText = (currentLang === 'ar') ? (q.textAr || q.textEn) : (q.textEn || q.textAr);
+
+      return `
+        <div class="qm-question-item ${disabledClass}" id="qmItem_${q.id}">
+          <div class="qm-question-top">
+            <div class="qm-badges-group">
+              <span class="qm-item-number">#${idx + 1}</span>
+              <span class="qm-badge-sec">${sectionNames[q.section] || ''}</span>
+              <span class="qm-badge-type">${typeNames[q.type] || q.type}</span>
+            </div>
+            <div class="qm-actions-group">
+              <button type="button" class="btn-qm-toggle ${toggleBtnClass}" onclick="window.AttendTrackAdmin.toggleQuestionEnable('${q.id}')" title="تفعيل أو تعطيل هذا السؤال في الاستمارة">
+                <i class="fa-solid ${isEnabled ? 'fa-check' : 'fa-ban'}"></i> ${toggleBtnText}
+              </button>
+              <button type="button" class="btn-qm-delete" onclick="window.AttendTrackAdmin.deleteQuestion('${q.id}')" title="حذف هذا السؤال">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </div>
+          <div>
+            <input type="text" class="form-input form-input-sm qm-input-text" value="${escapeHtml(qText)}" 
+              onchange="window.AttendTrackAdmin.updateQuestionText('${q.id}', this.value)"
+              placeholder="${(currentLang === 'ar') ? 'اكتب نص السؤال هنا...' : 'Question text...'}">
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // 14. Isolated Excel Export (100% pure language headers)
   function exportSessionExcel(sessionId) {
     const session = allSessions.find(s => s.sessionId === sessionId);
     if (!session) {
@@ -872,7 +1158,187 @@
     showToast((currentLang === 'ar') ? `تم تصدير ملف إكسل الخاص بدورة [${session.course}] بنجاح.` : `Excel file downloaded for [${session.course}].`, 'success');
   }
 
-  // 14. Global Actions
+  // 14. Dynamic Evaluation Excel Export (Sheet 1: Stats & Percentages | Sheet 2: Anonymous Responses)
+  function exportEvaluationExcel(sessionId) {
+    const session = allSessions.find(s => s.sessionId === sessionId);
+    if (!session) {
+      showToast('Session not found', 'error');
+      return;
+    }
+
+    const dict = translations[currentLang];
+    const evaluations = session.evaluations || [];
+    if (evaluations.length === 0) {
+      showToast((currentLang === 'ar')
+        ? `لا توجد تقييمات مسجلة لدورة [${session.course}] حتى الآن.`
+        : `No evaluations submitted for [${session.course}] yet.`, 'error');
+      return;
+    }
+
+    if (typeof XLSX === 'undefined') {
+      showToast('SheetJS Excel library not loaded', 'error');
+      return;
+    }
+
+    const isAr = (currentLang === 'ar');
+
+    const valMap = isAr ? {
+      yes: 'نعم',
+      somewhat: 'إلى حد ما',
+      no: 'لا',
+      excellent: 'ممتاز',
+      very_good: 'جيد جداً',
+      good: 'جيد',
+      poor: 'ضعيف'
+    } : {
+      yes: 'Yes',
+      somewhat: 'Somewhat',
+      no: 'No',
+      excellent: 'Excellent',
+      very_good: 'Very Good',
+      good: 'Good',
+      poor: 'Poor'
+    };
+
+    function translateVal(v) {
+      if (!v) return isAr ? 'غير محدد' : 'N/A';
+      const cleanKey = String(v).toLowerCase().trim().replace(/\s+/g, '_');
+      return valMap[cleanKey] || v;
+    }
+
+    const activeQuestions = evalQuestions.filter(q => q.enabled !== false);
+    const totalEvals = evaluations.length;
+
+    function countChoice(qId, targetVal) {
+      const targetClean = String(targetVal).toLowerCase().trim().replace(/\s+/g, '_');
+      return evaluations.filter(e => {
+        const r = (e.ratings && e.ratings[qId]) || e[qId] || '';
+        return String(r).toLowerCase().trim().replace(/\s+/g, '_') === targetClean;
+      }).length;
+    }
+
+    function calcPct(count) {
+      return totalEvals > 0 ? Math.round((count / totalEvals) * 100) + '%' : '0%';
+    }
+
+    // High satisfaction from rating questions or Q11
+    const ratingQ = activeQuestions.find(q => q.type === 'rating_4') || activeQuestions.find(q => q.id === 'q11');
+    let highSatCount = 0;
+    if (ratingQ) {
+      highSatCount = countChoice(ratingQ.id, 'excellent') + countChoice(ratingQ.id, 'very_good');
+    }
+    const highSatPct = calcPct(highSatCount);
+
+    const c1 = isAr ? 'المؤشر / البيان' : 'Indicator / Metric';
+    const c2 = isAr ? 'النتيجة / الإحصائية' : 'Result / Statistic';
+    const c3 = isAr ? 'التفاصيل والنسب' : 'Details & Percentages';
+
+    const sheet1Rows = [
+      { [c1]: isAr ? 'اسم الدورة التدريبية' : 'Course Title', [c2]: session.course, [c3]: '' },
+      { [c1]: isAr ? 'مكان التدريب / المركز' : 'Venue / Center', [c2]: session.location, [c3]: '' },
+      { [c1]: isAr ? 'اسم المدرب' : 'Trainer Name', [c2]: session.trainer, [c3]: '' },
+      { [c1]: isAr ? 'تاريخ الدورة وتوقيتها' : 'Date & Timing', [c2]: `${session.date} (${session.time})`, [c3]: '' },
+      { [c1]: isAr ? 'إجمالي التقييمات السرية المستلمة' : 'Total Anonymous Evaluations Received', [c2]: totalEvals, [c3]: isAr ? `${totalEvals} مقيّم (بدون هوية)` : `${totalEvals} respondents (100% anonymous)` },
+      { [c1]: isAr ? 'نسبة الرضا العام الكلية (ممتاز + جيد جداً)' : 'Overall High Satisfaction Rate (Excellent + Very Good)', [c2]: highSatPct, [c3]: isAr ? `${highSatCount} من أصل ${totalEvals} مشارك` : `${highSatCount} of ${totalEvals} participants` },
+      { [c1]: '', [c2]: '', [c3]: '' },
+      { [c1]: isAr ? '--- تفاصيل ومؤشرات الأسئلة المفعّلة في الاستمارة ---' : '--- Active Form Questions Indicators Breakdown ---', [c2]: '', [c3]: '' }
+    ];
+
+    activeQuestions.forEach((q, qIndex) => {
+      const qNum = qIndex + 1;
+      const qText = isAr ? (q.textAr || q.textEn) : (q.textEn || q.textAr);
+
+      if (q.type === 'yes_somewhat_no') {
+        const yesC = countChoice(q.id, 'yes');
+        const swC = countChoice(q.id, 'somewhat');
+        const noC = countChoice(q.id, 'no');
+        sheet1Rows.push({
+          [c1]: `${qNum}. ${qText}`,
+          [c2]: isAr ? `نعم: ${calcPct(yesC)}` : `Yes: ${calcPct(yesC)}`,
+          [c3]: isAr ? `نعم: ${yesC} (${calcPct(yesC)}) | إلى حد ما: ${swC} (${calcPct(swC)}) | لا: ${noC} (${calcPct(noC)})` : `Yes: ${yesC} (${calcPct(yesC)}) | Somewhat: ${swC} (${calcPct(swC)}) | No: ${noC} (${calcPct(noC)})`
+        });
+      } else if (q.type === 'yes_no') {
+        const yesC = countChoice(q.id, 'yes');
+        const noC = countChoice(q.id, 'no');
+        sheet1Rows.push({
+          [c1]: `${qNum}. ${qText}`,
+          [c2]: isAr ? `نعم: ${calcPct(yesC)}` : `Yes: ${calcPct(yesC)}`,
+          [c3]: isAr ? `نعم: ${yesC} (${calcPct(yesC)}) | لا: ${noC} (${calcPct(noC)})` : `Yes: ${yesC} (${calcPct(yesC)}) | No: ${noC} (${calcPct(noC)})`
+        });
+      } else if (q.type === 'rating_4') {
+        const exC = countChoice(q.id, 'excellent');
+        const vgC = countChoice(q.id, 'very_good');
+        const gdC = countChoice(q.id, 'good');
+        const prC = countChoice(q.id, 'poor');
+        sheet1Rows.push({
+          [c1]: `${qNum}. ${qText}`,
+          [c2]: isAr ? `ممتاز وجيد جداً: ${calcPct(exC + vgC)}` : `High Satisfaction: ${calcPct(exC + vgC)}`,
+          [c3]: isAr ? `ممتاز: ${exC} (${calcPct(exC)}) | جيد جداً: ${vgC} (${calcPct(vgC)}) | جيد: ${gdC} (${calcPct(gdC)}) | ضعيف: ${prC} (${calcPct(prC)})` : `Excellent: ${exC} | Very Good: ${vgC} | Good: ${gdC} | Poor: ${prC}`
+        });
+      } else {
+        const commentsCount = evaluations.filter(e => {
+          const c = (e.ratings && e.ratings[q.id]) || e[q.id] || '';
+          return c.trim().length > 0;
+        }).length;
+        sheet1Rows.push({
+          [c1]: `${qNum}. ${qText}`,
+          [c2]: isAr ? `${commentsCount} مقترح / ملاحظة` : `${commentsCount} comments submitted`,
+          [c3]: isAr ? `نسبة المشاركة بالملاحظات: ${calcPct(commentsCount)}` : `Participation rate: ${calcPct(commentsCount)}`
+        });
+      }
+    });
+
+    // Sheet 2: Anonymous Responses (Dynamic columns per active question)
+    const hIdx = isAr ? 'م' : '#';
+    const hTime = isAr ? 'وقت التقييم' : 'Submission Time';
+
+    const sheet2Rows = evaluations.map((item, index) => {
+      const r = item.ratings || {};
+      const respondentLabel = isAr ? `مقيّم سري رقم ${index + 1}` : `Respondent #${index + 1} (Anonymous)`;
+      const displayTime = item.displayTime || (item.timestamp ? new Date(item.timestamp).toLocaleString() : '');
+
+      const rowObj = {
+        [hIdx]: respondentLabel,
+        [hTime]: displayTime
+      };
+
+      activeQuestions.forEach((q, qIndex) => {
+        const qNum = qIndex + 1;
+        const qText = isAr ? (q.textAr || q.textEn) : (q.textEn || q.textAr);
+        const colHeader = `${isAr ? 'س' : 'Q'}${qNum}: ${qText}`;
+        const val = r[q.id] || item[q.id] || '';
+
+        if (q.type === 'text') {
+          rowObj[colHeader] = val || (isAr ? 'لا توجد ملاحظات' : 'No comments');
+        } else {
+          rowObj[colHeader] = translateVal(val);
+        }
+      });
+
+      return rowObj;
+    });
+
+    const ws1 = XLSX.utils.json_to_sheet(sheet1Rows);
+    const ws2 = XLSX.utils.json_to_sheet(sheet2Rows);
+    const wb = XLSX.utils.book_new();
+
+    const sheet1Title = isAr ? 'الإحصائيات والنسب العامة' : 'Stats & Summary';
+    const sheet2Title = isAr ? 'إجابات المقيمين (مجهولة)' : 'Anonymous Responses';
+
+    XLSX.utils.book_append_sheet(wb, ws1, sheet1Title);
+    XLSX.utils.book_append_sheet(wb, ws2, sheet2Title);
+
+    const fileName = `UNRWA_${session.date}_${sanitizeFileName(session.course)}_Evaluation.xlsx`;
+    XLSX.writeFile(wb, fileName);
+
+    showToast(isAr
+      ? `تم تصدير ملف إكسل لتقييمات دورة [${session.course}] بنجاح (ورقتان: الإحصائيات + الإجابات).`
+      : `Evaluation Excel exported for [${session.course}] (Summary + Responses).`,
+      'success'
+    );
+  }
+
+  // 15. Global Actions
   window.AttendTrackAdmin = {
     toggleFolder: function (sessionId) {
       const s = allSessions.find(item => item.sessionId === sessionId);
@@ -894,6 +1360,38 @@
 
     exportSessionExcel: function (sessionId) {
       exportSessionExcel(sessionId);
+    },
+
+    exportEvaluationExcel: function (sessionId) {
+      exportEvaluationExcel(sessionId);
+    },
+
+    toggleQuestionEnable: function (qId) {
+      const q = evalQuestions.find(item => item.id === qId);
+      if (q) {
+        q.enabled = (q.enabled === false) ? true : false;
+        renderQuestionsManagerList();
+      }
+    },
+
+    deleteQuestion: function (qId) {
+      const dict = translations[currentLang];
+      if (confirm((currentLang === 'ar') ? 'هل أنت متأكد من حذف هذا السؤال من الاستمارة؟' : 'Are you sure you want to remove this question?')) {
+        evalQuestions = evalQuestions.filter(item => item.id !== qId);
+        renderQuestionsManagerList();
+        showToast((currentLang === 'ar') ? 'تم حذف السؤال من القائمة.' : 'Question removed.', 'info');
+      }
+    },
+
+    updateQuestionText: function (qId, newText) {
+      const q = evalQuestions.find(item => item.id === qId);
+      if (q && newText.trim()) {
+        if (currentLang === 'ar') {
+          q.textAr = newText.trim();
+        } else {
+          q.textEn = newText.trim();
+        }
+      }
     },
 
     deleteAttendee: function (sessionId, attendeeId) {
@@ -1031,10 +1529,10 @@
     const btnCopy = document.getElementById('btnCopyCheckinLink');
     if (btnCopy) {
       btnCopy.addEventListener('click', () => {
-        const link = generateCheckinUrl();
+        const link = (currentQrMode === 'evaluation') ? generateEvalUrl() : generateCheckinUrl();
         const dict = translations[currentLang];
         navigator.clipboard.writeText(link).then(() => {
-          showToast(dict.toastLinkCopied, 'success');
+          showToast((currentQrMode === 'evaluation') ? dict.toastEvalLinkCopied : dict.toastLinkCopied, 'success');
         }).catch(() => {
           showToast(link, 'info');
         });
@@ -1044,8 +1542,131 @@
     const btnTest = document.getElementById('btnTestMobileView');
     if (btnTest) {
       btnTest.addEventListener('click', () => {
-        const link = generateCheckinUrl();
+        const link = (currentQrMode === 'evaluation') ? generateEvalUrl() : generateCheckinUrl();
         window.open(link, '_blank');
+      });
+    }
+
+    const tabAttendance = document.getElementById('tabModeAttendance');
+    const tabEvaluation = document.getElementById('tabModeEvaluation');
+    if (tabAttendance && tabEvaluation) {
+      tabAttendance.addEventListener('click', () => {
+        currentQrMode = 'attendance';
+        tabAttendance.classList.add('active');
+        tabEvaluation.classList.remove('active');
+        renderQrCodes();
+      });
+
+      tabEvaluation.addEventListener('click', () => {
+        currentQrMode = 'evaluation';
+        tabEvaluation.classList.add('active');
+        tabAttendance.classList.remove('active');
+        renderQrCodes();
+      });
+    }
+
+    // Questions Manager Modal Setup
+    const btnOpenQM = document.getElementById('btnOpenQuestionsModal');
+    const btnHeaderQM = document.getElementById('btnHeaderQuestionsManager');
+    const modalQM = document.getElementById('questionsManagerModal');
+    const btnCloseQM = document.getElementById('btnCloseQuestionsModal');
+    const btnCloseQMBottom = document.getElementById('btnCloseQuestionsModalBottom');
+    const btnAddQ = document.getElementById('btnAddQuestionSubmit');
+    const btnSaveQ = document.getElementById('btnSaveQuestionsConfig');
+    const btnResetQ = document.getElementById('btnResetDefaultQuestions');
+
+    function openQuestionsModal() {
+      if (!modalQM) return;
+      modalQM.classList.remove('hidden');
+      renderQuestionsManagerList();
+    }
+
+    if (btnOpenQM) btnOpenQM.addEventListener('click', openQuestionsModal);
+    if (btnHeaderQM) btnHeaderQM.addEventListener('click', openQuestionsModal);
+
+    if (btnCloseQM && modalQM) {
+      btnCloseQM.addEventListener('click', () => {
+        modalQM.classList.add('hidden');
+      });
+    }
+    if (btnCloseQMBottom && modalQM) {
+      btnCloseQMBottom.addEventListener('click', () => {
+        modalQM.classList.add('hidden');
+      });
+    }
+
+    if (modalQM) {
+      modalQM.addEventListener('click', (e) => {
+        if (e.target === modalQM) {
+          modalQM.classList.add('hidden');
+        }
+      });
+    }
+
+    if (btnAddQ) {
+      btnAddQ.addEventListener('click', () => {
+        const sec = parseInt(document.getElementById('qmNewSection').value) || 1;
+        const type = document.getElementById('qmNewType').value;
+        const textInput = document.getElementById('qmNewTextAr');
+        const textVal = textInput ? textInput.value.trim() : '';
+
+        if (!textVal) {
+          showToast((currentLang === 'ar') ? 'يرجى كتابة نص السؤال أولاً.' : 'Please enter question text.', 'error');
+          return;
+        }
+
+        const newQ = {
+          id: 'q_' + Date.now(),
+          section: sec,
+          type: type,
+          textAr: textVal,
+          textEn: textVal,
+          enabled: true
+        };
+
+        evalQuestions.push(newQ);
+        if (textInput) textInput.value = '';
+        renderQuestionsManagerList();
+        showToast((currentLang === 'ar') ? 'تمت إضافة السؤال بنجاح. لا تنسَ الضغط على "حفظ وتطبيق التغييرات".' : 'Question added. Click Save to apply.', 'info');
+      });
+    }
+
+    if (btnSaveQ) {
+      btnSaveQ.addEventListener('click', () => {
+        try {
+          localStorage.setItem('attendtrack_eval_questions_v1', JSON.stringify(evalQuestions));
+        } catch (e) {
+          console.warn(e);
+        }
+
+        if (db) {
+          db.ref('settings/eval_questions').set(evalQuestions).catch(console.warn);
+        }
+
+        const dict = translations[currentLang];
+        showToast(dict.toastQuestionsSaved, 'success');
+        if (modalQM) modalQM.classList.add('hidden');
+      });
+    }
+
+    if (btnResetQ) {
+      btnResetQ.addEventListener('click', () => {
+        const dict = translations[currentLang];
+        if (confirm(dict.confirmResetQuestions)) {
+          evalQuestions = JSON.parse(JSON.stringify(DEFAULT_EVAL_QUESTIONS));
+          try {
+            localStorage.setItem('attendtrack_eval_questions_v1', JSON.stringify(evalQuestions));
+          } catch (e) {
+            console.warn(e);
+          }
+
+          if (db) {
+            db.ref('settings/eval_questions').set(evalQuestions).catch(console.warn);
+          }
+
+          renderQuestionsManagerList();
+          showToast(dict.toastQuestionsReset, 'success');
+        }
       });
     }
 
@@ -1227,6 +1848,19 @@
       }
     }
 
+    try {
+      const localEvals = JSON.parse(localStorage.getItem('attendtrack_local_evaluations_v1') || '{}');
+      allSessions.forEach(s => {
+        if (!s.evaluations || s.evaluations.length === 0) {
+          if (localEvals[s.sessionId]) {
+            s.evaluations = localEvals[s.sessionId];
+          }
+        }
+      });
+    } catch (e) {
+      console.warn(e);
+    }
+
     currentSession = null;
     const placeholder = document.getElementById('qrStandbyPlaceholder');
     const content = document.getElementById('qrActiveContent');
@@ -1245,6 +1879,7 @@
     renderSessionsAccordion();
     updateGlobalStats();
     initRealtimeFirebaseSync();
+    loadEvalQuestions();
   });
 
 })();

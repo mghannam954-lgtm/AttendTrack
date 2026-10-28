@@ -55,6 +55,12 @@
           <span data-i18n="badgeHrConsole">لوحة المشرف</span>
         </div>
 
+        <!-- Questions Manager Quick Button -->
+        <button type="button" id="btnHeaderQuestionsManager" class="btn btn-outline btn-sm" style="height: 38px; gap: 0.45rem; font-weight: 600;" title="إدارة وتخصيص أسئلة استمارة التقييم">
+          <i class="fa-solid fa-sliders"></i>
+          <span data-i18n="btnQuestionsSettings">تعديل الأسئلة</span>
+        </button>
+
         <!-- Language Switcher -->
         <button id="langToggleBtn" class="lang-toggle-btn" title="Toggle Language">
           <i class="fa-solid fa-globe"></i>
@@ -210,6 +216,22 @@
 
           <!-- Active QR Content (Shown only after HR generates the session) -->
           <div id="qrActiveContent" class="qr-showcase-box hidden">
+            <!-- QR Mode Tabs: Attendance vs Anonymous Evaluation -->
+            <div class="qr-tab-nav" id="qrModeTabs">
+              <button type="button" class="qr-tab-btn active" id="tabModeAttendance" data-mode="attendance">
+                <i class="fa-solid fa-user-check"></i>
+                <span data-i18n="tabModeAttendance">رمز الحضور (Check-In)</span>
+              </button>
+              <button type="button" class="qr-tab-btn" id="tabModeEvaluation" data-mode="evaluation">
+                <i class="fa-solid fa-square-poll-vertical"></i>
+                <span data-i18n="tabModeEvaluation">رمز التقييم السري (Evaluation)</span>
+              </button>
+              <button type="button" class="qr-tab-btn" id="btnOpenQuestionsModal" style="max-width: 175px; color: var(--un-blue-navy); border: 1px dashed var(--un-blue-primary);" title="تخصيص وإدارة أسئلة التقييم">
+                <i class="fa-solid fa-sliders"></i>
+                <span data-i18n="btnQuestionsSettings">تعديل الأسئلة</span>
+              </button>
+            </div>
+
             <!-- QR Frame -->
             <div class="qr-code-wrapper" id="qrCodeContainer">
               <div id="qrcode"></div>
@@ -238,11 +260,11 @@
               </button>
               <button id="btnCopyCheckinLink" class="btn btn-outline" title="Copy Check-In Link">
                 <i class="fa-solid fa-link"></i>
-                <span data-i18n="btnCopyLink">Copy Check-in Link</span>
+                <span id="btnCopyLinkText" data-i18n="btnCopyLink">Copy Check-in Link</span>
               </button>
               <button id="btnTestMobileView" class="btn btn-accent" title="Test Trainee View">
                 <i class="fa-solid fa-mobile-screen-button"></i>
-                <span data-i18n="btnTestCheckin">Test Trainee View</span>
+                <span id="btnTestCheckinText" data-i18n="btnTestCheckin">Test Trainee View</span>
               </button>
             </div>
 
@@ -394,6 +416,92 @@
 
       <div class="flyer-footer">
         <p>United Nations Relief and Works Agency for Palestine Refugees in the Near East · www.unrwa.org</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: EVALUATION QUESTIONS MANAGER (FORM BUILDER) -->
+  <div id="questionsManagerModal" class="qm-modal-overlay hidden">
+    <div class="qm-modal-dialog">
+      <!-- Modal Header -->
+      <div class="qm-modal-header">
+        <div class="qm-modal-header-title">
+          <div class="qm-header-icon-box">
+            <i class="fa-solid fa-sliders"></i>
+          </div>
+          <div>
+            <h2 class="qm-title" data-i18n="qmTitle">إدارة وتخصيص أسئلة استمارة التقييم</h2>
+            <p class="qm-subtitle" data-i18n="qmSubtitle">يمكنك تعديل نصوص الأسئلة، تفعيل أو تعطيل أي سؤال، أو إضافة أسئلة مخصصة للدورة.</p>
+          </div>
+        </div>
+        <button type="button" id="btnCloseQuestionsModal" class="qm-close-btn" title="إغلاق">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="qm-modal-body">
+        <!-- Add New Question Box -->
+        <div class="qm-add-card">
+          <h4 class="qm-add-title">
+            <i class="fa-solid fa-circle-plus"></i> <span data-i18n="qmAddNewTitle">إضافة سؤال جديد إلى الاستمارة</span>
+          </h4>
+          <div class="qm-add-grid">
+            <div>
+              <label class="qm-label" data-i18n="qmSecLabel">قسم التقييم:</label>
+              <select id="qmNewSection" class="form-input form-input-sm">
+                <option value="1">1. تقييم محتوى التدريب</option>
+                <option value="2">2. تقييم أداء المدرب</option>
+                <option value="3">3. تنظيم وإدارة الدورة</option>
+                <option value="4">4. الأثر والتطبيق العملي</option>
+                <option value="5">5. التقييم الشامل والمقترحات</option>
+              </select>
+            </div>
+            <div>
+              <label class="qm-label" data-i18n="qmTypeLabel">نوع الإجابة:</label>
+              <select id="qmNewType" class="form-input form-input-sm">
+                <option value="yes_somewhat_no">خيارات: نعم / إلى حد ما / لا</option>
+                <option value="yes_no">خيارات: نعم / لا</option>
+                <option value="rating_4">تقييم: ممتاز / جيد جداً / جيد / ضعيف</option>
+                <option value="text">حقل نصي حر (ملاحظات ومقترحات)</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-top: 0.75rem;">
+            <label class="qm-label" data-i18n="qmTextLabel">نص السؤال (باللغة العربية):</label>
+            <input type="text" id="qmNewTextAr" class="form-input form-input-sm" placeholder="اكتب صيغة السؤال هنا..." required>
+          </div>
+          <div style="display: flex; justify-content: flex-end; margin-top: 0.75rem;">
+            <button type="button" id="btnAddQuestionSubmit" class="btn btn-primary btn-sm">
+              <i class="fa-solid fa-plus"></i> <span data-i18n="qmBtnAdd">إضافة السؤال للاستمارة</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Active Questions List Table / Cards -->
+        <div class="qm-list-header">
+          <div class="qm-list-title-wrap">
+            <h4 class="qm-list-title" data-i18n="qmListTitle">الأسئلة الحالية في الاستمارة</h4>
+            <span class="qm-count-pill"><span id="qmActiveCount">12</span> سؤال مفعّل</span>
+          </div>
+          <button type="button" id="btnResetDefaultQuestions" class="btn btn-danger-outline btn-sm" title="العودة للقالب القياسي الرسمي">
+            <i class="fa-solid fa-rotate-left"></i> <span data-i18n="qmBtnReset">استعادة القالب الرسمي (12 سؤال)</span>
+          </button>
+        </div>
+
+        <div id="qmQuestionsListContainer" class="qm-list-scroll">
+          <!-- Injected dynamically by app.js -->
+        </div>
+      </div>
+
+      <!-- Modal Footer Buttons -->
+      <div class="qm-modal-footer">
+        <button type="button" id="btnCloseQuestionsModalBottom" class="btn btn-secondary">
+          <span data-i18n="btnClose">إغلاق</span>
+        </button>
+        <button type="button" id="btnSaveQuestionsConfig" class="btn btn-primary">
+          <i class="fa-solid fa-floppy-disk"></i> <span data-i18n="qmBtnSave">حفظ وتطبيق التغييرات</span>
+        </button>
       </div>
     </div>
   </div>

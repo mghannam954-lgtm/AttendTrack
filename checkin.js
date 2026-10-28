@@ -86,6 +86,7 @@
       successTitle: 'تم تسجيل الحضور بنجاح',
       successDesc: 'تم توثيق حضورك رسمياً في سجلات قسم تطوير الموظفين والتدريب بدائرة الموارد البشرية.',
       btnRegisterAnother: 'تسجيل زميل آخر',
+      btnGoToEval: 'تقييم التدريب الآن (استمارة سرية)',
       rcptName: 'الاسم الكامل:',
       rcptEmpNo: 'الرقم الوظيفي:',
       rcptGender: 'الجنس:',
@@ -136,6 +137,7 @@
       successTitle: 'Attendance Confirmed Successfully',
       successDesc: 'Your attendance has been officially documented with the UNRWA Staff Development & Training Division.',
       btnRegisterAnother: 'Register Another Colleague',
+      btnGoToEval: 'Evaluate Training Now (Anonymous Form)',
       rcptName: 'Full Name:',
       rcptEmpNo: 'Employee Number:',
       rcptGender: 'Gender:',
@@ -514,6 +516,18 @@
     document.getElementById('rcptCourseVal').textContent = data.course;
     document.getElementById('rcptLocationVal').textContent = data.location;
     document.getElementById('rcptTimeVal').textContent = data.displayTime + ' (' + data.date + ')';
+
+    const btnEval = document.getElementById('btnGoToEvaluation');
+    if (btnEval) {
+      const evalParams = new URLSearchParams();
+      evalParams.set('c', sessionData.course);
+      evalParams.set('loc', sessionData.location);
+      evalParams.set('tr', sessionData.trainer);
+      evalParams.set('d', sessionData.date);
+      evalParams.set('t', sessionData.time);
+      evalParams.set('sid', sessionData.sessionId);
+      btnEval.href = 'eval.html?' + evalParams.toString();
+    }
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
