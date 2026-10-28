@@ -1737,13 +1737,13 @@
     if (btnSaveQ) {
       btnSaveQ.addEventListener('click', () => {
         try {
-          localStorage.setItem('attendtrack_eval_questions_v1', JSON.stringify(evalQuestions));
+          localStorage.setItem('attendtrack_eval_questions_v2', JSON.stringify(evalQuestions));
         } catch (e) {
           console.warn(e);
         }
 
         if (db) {
-          db.ref('settings/eval_questions').set(evalQuestions).catch(console.warn);
+          db.ref('settings/eval_questions_v2').set(evalQuestions).catch(console.warn);
         }
 
         const dict = translations[currentLang];
@@ -1758,13 +1758,13 @@
         if (confirm(dict.confirmResetQuestions)) {
           evalQuestions = JSON.parse(JSON.stringify(DEFAULT_EVAL_QUESTIONS));
           try {
-            localStorage.setItem('attendtrack_eval_questions_v1', JSON.stringify(evalQuestions));
+            localStorage.setItem('attendtrack_eval_questions_v2', JSON.stringify(evalQuestions));
           } catch (e) {
             console.warn(e);
           }
 
           if (db) {
-            db.ref('settings/eval_questions').set(evalQuestions).catch(console.warn);
+            db.ref('settings/eval_questions_v2').set(evalQuestions).catch(console.warn);
           }
 
           renderQuestionsManagerList();
